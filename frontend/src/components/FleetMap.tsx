@@ -125,7 +125,7 @@ export default function FleetMap({ vehicles, locations }: Props) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-800"
+      className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-900 dark:to-gray-800 light:from-white light:to-gray-50 rounded-xl overflow-hidden shadow-lg border border-gray-800 dark:border-gray-800 light:border-gray-200"
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-800/50 bg-gradient-to-r from-gray-800 to-gray-700">
@@ -309,7 +309,7 @@ export default function FleetMap({ vehicles, locations }: Props) {
         )}
 
         {/* Map overlay info */}
-        <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 text-xs text-white z-20">
+        <div className="absolute bottom-4 left-4 bg-black/70 dark:bg-black/70 light:bg-white/90 backdrop-blur-sm rounded-lg p-3 text-xs text-white dark:text-white light:text-gray-900 z-20 border border-gray-700 dark:border-gray-700 light:border-gray-200">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <Activity className="w-3 h-3 text-emerald-400" />

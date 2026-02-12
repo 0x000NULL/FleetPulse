@@ -12,17 +12,17 @@ function scoreColor(score: number): string {
 
 export default function LocationCard({ location }: Props) {
   return (
-    <div className="bg-gray-900 rounded-xl p-4 shadow-lg border border-gray-800 hover:border-blue-500/40 transition-colors">
+    <div className="bg-gray-900 dark:bg-gray-900 light:bg-white rounded-xl p-4 shadow-lg border border-gray-800 dark:border-gray-800 light:border-gray-200 hover:border-blue-500/40 transition-colors">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold text-sm">{location.name}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">{location.address}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 light:text-gray-600 mt-0.5">{location.address}</p>
         </div>
         <div className={`text-xl font-bold ${scoreColor(location.safety_score)}`}>
           {location.safety_score}
         </div>
       </div>
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs text-gray-400 dark:text-gray-400 light:text-gray-600">
         <span>🚗 {location.vehicle_count} vehicles</span>
         <span>🟢 {location.active} active</span>
       </div>
