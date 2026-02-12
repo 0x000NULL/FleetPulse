@@ -1,0 +1,27 @@
+{
+  "name": "FleetPulse",
+  "short_name": "FleetPulse",
+  "description": "Fleet Intelligence Dashboard - Monitor and manage your fleet in real-time",
+  "theme_color": "#030712",
+  "background_color": "#030712",
+  "display": "standalone",
+  "orientation": "any",
+  "scope": "/",
+  "start_url": "/",
+  "lang": "en",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
