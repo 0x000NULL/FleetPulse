@@ -1,0 +1,43 @@
+name: fleetpulse
+region: sfo
+services:
+  - name: api
+    github:
+      repo: 0x000NULL/FleetPulse
+      branch: main
+      deploy_on_push: true
+    source_dir: backend
+    environment_slug: python
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8080
+    run_command: uvicorn app:app --host 0.0.0.0 --port 8080
+    envs:
+      - key: GEOTAB_DATABASE
+        value: demo_fleetpulse
+        type: SECRET
+      - key: GEOTAB_USERNAME
+        value: e.aldrich@budgetlasvegas.com
+        type: SECRET
+      - key: GEOTAB_PASSWORD
+        value: Painkiller69!
+        type: SECRET
+      - key: GEOTAB_SERVER
+        value: my.geotab.com
+    routes:
+      - path: /api
+static_sites:
+  - name: frontend
+    github:
+      repo: 0x000NULL/FleetPulse
+      branch: main
+      deploy_on_push: true
+    source_dir: frontend
+    build_command: npm install && npm run build
+    output_dir: dist
+    environment_slug: node-js
+    routes:
+      - path: /
+    envs:
+      - key: VITE_API_URL
+        value: ${api.PUBLIC_URL}
