@@ -1,17 +1,172 @@
 """AI Chat Router - Intelligent fleet query processing."""
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+import os
+import json
 import re
 from datetime import datetime, timedelta
-import json
+from typing import List, Dict, Any, Optional
+
+import anthropic
+from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 router = APIRouter()
+
+# In-memory storage for API key (not persisted to disk for security)
+_anthropic_api_key: Optional[str] = None
+_anthropic_client: Optional[anthropic.Anthropic] = None
+
+# Initialize from environment variable if available
+def _initialize_anthropic():
+    """Initialize Anthropic client from environment variable."""
+    global _anthropic_api_key, _anthropic_client
+    
+    env_key = os.getenv("ANTHROPIC_API_KEY")
+    if env_key and env_key != "your-key-here":
+        _anthropic_api_key = env_key
+        _anthropic_client = anthropic.Anthropic(api_key=env_key)
+
+# Initialize on module load
+_initialize_anthropic()
+
+
+def _set_api_key(api_key: str) -> bool:
+    """Set API key in memory and initialize client."""
+    global _anthropic_api_key, _anthropic_client
+    
+    try:
+        # Test the API key by making a simple call
+        test_client = anthropic.Anthropic(api_key=api_key)
+        # Small test message to verify the key works
+        test_response = test_client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=10,
+            messages=[{"role": "user", "content": "Test"}]
+        )
+        
+        # If we get here, the key works
+        _anthropic_api_key = api_key
+        _anthropic_client = test_client
+        return True
+        
+    except Exception as e:
+        print(f"API key validation failed: {e}")
+        return False
+
+
+def _get_claude_client() -> Optional[anthropic.Anthropic]:
+    """Get the Claude client if available."""
+    return _anthropic_client
+
+
+def _is_ai_enabled() -> bool:
+    """Check if AI is enabled (API key is set)."""
+    return _anthropic_client is not None
+
+
+async def _fetch_fleet_context() -> str:
+    """Fetch current fleet data to provide context to Claude."""
+    try:
+        # Import here to avoid circular imports
+        from services.fleet_service import get_fleet_overview
+        from services.alert_service import get_current_alerts
+        from services.safety_service import get_safety_scores
+        
+        # Fetch current data (with fallback to mock data)
+        try:
+            fleet_overview = await get_fleet_overview()
+            alerts = await get_current_alerts()
+            safety_scores = await get_safety_scores()
+        except:
+            # Fallback to mock data if services aren't available
+            fleet_overview = {
+                "total_vehicles": 50,
+                "active_vehicles": 42,
+                "idle_vehicles": 8,
+                "avg_utilization": 74,
+                "fuel_efficiency": 8.2
+            }
+            alerts = [
+                {"type": "maintenance", "priority": "high", "message": "Vehicle V023 needs brake service in 3 days"},
+                {"type": "idle", "priority": "medium", "message": "8 vehicles idle > 2 hours at W Sahara"},
+                {"type": "safety", "priority": "low", "message": "New driver training module available"}
+            ]
+            safety_scores = FLEET_DATA["safety_scores"]
+        
+        context = f"""CURRENT FLEET STATUS:
+Fleet Overview: {fleet_overview}
+
+Active Alerts: {alerts}
+
+Safety Scores by Location: {safety_scores}
+
+Recent Performance Data:
+- Idle Time Analysis: {FLEET_DATA['idle_analysis'][:3]}  
+- Fuel Efficiency: {FLEET_DATA['fuel_efficiency'][-3:]}
+- Maintenance Predictions: {FLEET_DATA['maintenance_predictions']}
+"""
+        
+        return context
+        
+    except Exception as e:
+        print(f"Error fetching fleet context: {e}")
+        return "Fleet data temporarily unavailable."
+
+
+CLAUDE_SYSTEM_PROMPT = """You are FleetPulse AI, an advanced fleet management intelligence assistant for Budget Rent a Car Las Vegas. You help fleet managers optimize operations across 8 locations with 50+ vehicles.
+
+ABOUT FLEETPULSE:
+FleetPulse is a GeoTab-powered fleet management platform that provides real-time analytics for:
+- Vehicle tracking and utilization
+- Safety scoring and incident management  
+- Fuel efficiency monitoring
+- Predictive maintenance
+- Route optimization
+- Driver behavior analysis
+- Cost optimization recommendations
+
+YOUR ROLE:
+- Analyze fleet data and provide actionable insights
+- Answer questions about vehicle performance, safety, maintenance, and costs
+- Generate charts and visualizations (specify chart_type: bar, line, pie)
+- Provide specific recommendations with estimated ROI
+- Explain complex fleet metrics in simple terms
+- Suggest optimizations based on data patterns
+
+RESPONSE FORMAT:
+Always provide:
+1. Direct answer to the question
+2. Supporting data (if relevant) 
+3. Actionable insights or recommendations
+4. Potential cost impact/savings
+
+For visualizations, structure your response with:
+- response: Main answer text
+- data: Array of objects for charting
+- chart_type: "bar", "line", or "pie"  
+- insights: Array of key takeaways
+
+FLEET LOCATIONS:
+1. Downtown - Main hub, highest safety scores
+2. Fremont - Efficient operations, good maintenance compliance
+3. McCarran - Airport location, high utilization
+4. Henderson - Residential area, moderate traffic
+5. Summerlin - Business district, peak 9-5 demand
+6. The Strip - Tourism area, 24/7 operations
+7. W Sahara - High idle times, needs optimization
+8. N Las Vegas - Growing market, infrastructure challenges
+
+Be data-driven, specific, and focus on operational improvements that save money or improve safety."""
 
 
 class ChatMessage(BaseModel):
     message: str
+    conversation_history: Optional[List[Dict[str, str]]] = []
     timestamp: Optional[datetime] = None
 
 
@@ -21,6 +176,8 @@ class ChatResponse(BaseModel):
     chart_type: Optional[str] = None
     insights: Optional[List[str]] = None
     confidence: float = 0.95
+    model: Optional[str] = None
+    is_ai_powered: bool = False
 
 
 class FleetInsight(BaseModel):
@@ -30,6 +187,16 @@ class FleetInsight(BaseModel):
     message: str
     impact: str
     action: str
+
+
+class ApiKeyRequest(BaseModel):
+    api_key: str
+
+
+class ConfigResponse(BaseModel):
+    ai_enabled: bool
+    model: Optional[str] = None
+    provider: str = "anthropic"
 
 
 # Mock fleet data for intelligent responses
@@ -348,34 +515,145 @@ def general_handler(message: str) -> ChatResponse:
     )
 
 
-@router.post("/query", response_model=ChatResponse)
-async def process_chat_query(chat_message: ChatMessage):
-    """Process a natural language fleet query and return intelligent response."""
+async def _process_claude_query(message: str, conversation_history: List[Dict[str, str]]) -> ChatResponse:
+    """Process query using Claude AI."""
+    client = _get_claude_client()
+    if not client:
+        raise HTTPException(status_code=503, detail="AI service not available")
+    
     try:
-        handler_name, confidence = analyze_query(chat_message.message)
+        # Fetch current fleet context
+        fleet_context = await _fetch_fleet_context()
         
-        # Route to appropriate handler
-        handlers = {
-            "safety_analysis": safety_analysis_handler,
-            "idle_analysis": idle_analysis_handler,
-            "fuel_analysis": fuel_analysis_handler,
-            "maintenance_predictions": maintenance_predictions_handler,
-            "utilization_analysis": utilization_analysis_handler,
-            "cost_optimization": cost_optimization_handler,
-            "vehicle_specific": vehicle_specific_handler,
-            "general": general_handler
-        }
+        # Build conversation history for Claude
+        messages = []
         
-        handler = handlers.get(handler_name, general_handler)
-        response = handler(chat_message.message)
+        # Add conversation history
+        for msg in conversation_history[-10:]:  # Last 10 messages for context
+            role = "user" if msg.get("type") == "user" else "assistant"
+            messages.append({"role": role, "content": msg.get("content", "")})
         
-        # Override confidence with pattern matching confidence
-        response.confidence = confidence
+        # Add current message with fleet context
+        current_message = f"""CURRENT FLEET DATA:
+{fleet_context}
+
+USER QUESTION: {message}
+
+Please analyze this question in the context of the current fleet data and provide insights, recommendations, and any relevant visualizations."""
+
+        messages.append({"role": "user", "content": current_message})
         
-        return response
+        # Call Claude
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            system=CLAUDE_SYSTEM_PROMPT,
+            messages=messages
+        )
+        
+        # Parse response for structured data
+        response_text = response.content[0].text
+        
+        # Try to extract structured data (chart suggestions, insights)
+        chart_type = None
+        data = None
+        insights = []
+        
+        # Look for chart suggestions in response
+        if "bar chart" in response_text.lower() or "bar graph" in response_text.lower():
+            chart_type = "bar"
+        elif "line chart" in response_text.lower() or "trend" in response_text.lower():
+            chart_type = "line"  
+        elif "pie chart" in response_text.lower() or "distribution" in response_text.lower():
+            chart_type = "pie"
+        
+        # Extract insights (lines starting with bullet points or numbers)
+        lines = response_text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if (line.startswith('•') or line.startswith('-') or 
+                line.startswith('*') or re.match(r'^\d+\.', line)):
+                insights.append(line.lstrip('•-* ').lstrip('0123456789. '))
+        
+        # If Claude suggested a specific visualization, try to provide relevant data
+        if chart_type and any(keyword in message.lower() for keyword in ['safety', 'score']):
+            data = [{"location": loc["location"], "score": loc["score"], "color": "#10b981" if loc["score"] >= 90 else "#f59e0b" if loc["score"] >= 85 else "#ef4444"} for loc in FLEET_DATA["safety_scores"]]
+        elif chart_type and "idle" in message.lower():
+            data = [{"location": loc["location"], "minutes": loc["avg_idle_minutes"], "color": "#ef4444" if loc["avg_idle_minutes"] > 120 else "#f59e0b" if loc["avg_idle_minutes"] > 60 else "#10b981"} for loc in FLEET_DATA["idle_analysis"]]
+        elif chart_type and "fuel" in message.lower():
+            data = [{"day": day["date"][-5:], "efficiency": day["efficiency"]} for day in FLEET_DATA["fuel_efficiency"]]
+        
+        return ChatResponse(
+            response=response_text,
+            data=data,
+            chart_type=chart_type,
+            insights=insights[:3],  # Top 3 insights
+            confidence=0.95,
+            model="claude-sonnet-4-20250514",
+            is_ai_powered=True
+        )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+        print(f"Claude API error: {e}")
+        # Fall back to pattern matching
+        return await _process_fallback_query(message)
+
+
+async def _process_fallback_query(message: str) -> ChatResponse:
+    """Fallback to pattern matching when AI is not available."""
+    handler_name, confidence = analyze_query(message)
+    
+    # Route to appropriate handler
+    handlers = {
+        "safety_analysis": safety_analysis_handler,
+        "idle_analysis": idle_analysis_handler,
+        "fuel_analysis": fuel_analysis_handler,
+        "maintenance_predictions": maintenance_predictions_handler,
+        "utilization_analysis": utilization_analysis_handler,
+        "cost_optimization": cost_optimization_handler,
+        "vehicle_specific": vehicle_specific_handler,
+        "general": general_handler
+    }
+    
+    handler = handlers.get(handler_name, general_handler)
+    response = handler(message)
+    
+    # Override confidence and add fallback indicators
+    response.confidence = confidence
+    response.model = "pattern-matching"
+    response.is_ai_powered = False
+    
+    return response
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def process_chat_query(chat_message: ChatMessage):
+    """Process a natural language fleet query with Claude AI or fallback to pattern matching."""
+    try:
+        if _is_ai_enabled():
+            return await _process_claude_query(
+                chat_message.message, 
+                chat_message.conversation_history or []
+            )
+        else:
+            return await _process_fallback_query(chat_message.message)
+        
+    except Exception as e:
+        print(f"Error in chat processing: {e}")
+        # Ultimate fallback
+        return ChatResponse(
+            response="I'm experiencing technical difficulties. Please try rephrasing your question or check specific metrics in the dashboard.",
+            confidence=0.1,
+            model="error-fallback",
+            is_ai_powered=False
+        )
+
+
+# Legacy endpoint for backward compatibility
+@router.post("/query", response_model=ChatResponse)
+async def process_legacy_query(chat_message: ChatMessage):
+    """Legacy endpoint - redirects to new chat endpoint."""
+    return await process_chat_query(chat_message)
 
 
 @router.get("/insights", response_model=List[FleetInsight])
