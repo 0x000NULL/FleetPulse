@@ -65,8 +65,11 @@ W Sahara · Golden Nugget · Center Strip · Tropicana · LAS Airport · Gibson 
 - Python 3.10+
 - Node.js 18+
 - GeoTab credentials (set in `~/.openclaw/.env.geotab` or project `.env`)
+- **Optional**: Anthropic API key for Claude AI integration
 
 ### Environment Variables
+
+#### Basic Setup (`.env` file in backend/)
 ```env
 GEOTAB_DATABASE=demo_fleetpulse
 GEOTAB_USERNAME=your_username
@@ -74,9 +77,26 @@ GEOTAB_PASSWORD=your_password
 GEOTAB_SERVER=my.geotab.com
 ```
 
+#### AI-Enhanced Setup (Optional)
+```env
+# Add this line to enable Claude AI integration
+ANTHROPIC_API_KEY=your-key-here
+```
+
 ### Backend
 ```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies (includes anthropic SDK)
 pip install -r requirements.txt
+
+# Copy and edit environment variables
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
+
+# Start the backend
 cd backend
 uvicorn app:app --port 8080
 ```
@@ -89,6 +109,42 @@ npm run dev
 ```
 
 Open http://localhost:5173 — the Vite dev server proxies API calls to the backend on port 8080.
+
+## 🧠 AI Integration
+
+FleetPulse supports **two AI modes** for enhanced fleet intelligence:
+
+### 1. Claude AI Mode (Recommended)
+- **Real AI-powered responses** using Anthropic's Claude model
+- Context-aware fleet analysis with real-time data integration
+- Streaming responses for better user experience
+- Advanced insights and recommendations
+
+**Setup:**
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com)
+2. Either set `ANTHROPIC_API_KEY` in your `backend/.env` file, OR
+3. Use the settings panel in the chat interface to configure the key at runtime
+
+### 2. Demo Mode (Pattern Matching)
+- **No API key required** — works out of the box
+- Uses intelligent pattern matching for common fleet queries
+- Provides useful responses for standard fleet management questions
+- Automatically activated when no API key is configured
+
+**Features in both modes:**
+- Natural language fleet queries
+- Data visualizations (charts, graphs)
+- Safety analysis and recommendations
+- Maintenance predictions
+- Cost optimization insights
+- Real-time fleet status integration
+
+**Example queries:**
+- "Which location has the best safety scores?"
+- "Show me vehicles with high idle time"
+- "What are the cost-saving recommendations?"
+- "How is our fuel efficiency trending?"
+- "Any vehicles need maintenance soon?"
 
 ## 🤖 Claude Desktop Integration (MCP)
 
@@ -175,7 +231,12 @@ FleetPulse includes a **Model Context Protocol (MCP) server** that allows Claude
 | `GET /api/monitor/alerts` | Agentic monitor alerts |
 | `GET /api/monitor/status` | Monitor status & patterns |
 | `POST /api/monitor/check` | Trigger manual check |
-| `POST /api/ai/query` | Natural language fleet queries |
+| **🧠 AI Endpoints** |
+| `POST /api/ai/chat` | **Claude AI-powered chat** (with conversation history) |
+| `POST /api/ai/chat/stream` | **Streaming AI responses** (Server-Sent Events) |
+| `GET /api/ai/config` | Get AI configuration status |
+| `POST /api/ai/config` | Set Anthropic API key (memory only) |
+| `POST /api/ai/query` | Legacy natural language queries (pattern matching fallback) |
 | `GET /api/ai/insights` | AI-generated recommendations |
 
 ## 🛠️ Tech Stack
