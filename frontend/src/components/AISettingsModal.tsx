@@ -38,6 +38,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
       if (response.ok) {
         const config = await response.json()
         setAiConfig(config)
+        setSelectedProvider(config.provider || 'demo')
       }
     } catch (error) {
       console.error('Failed to fetch AI config:', error)
@@ -143,7 +144,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 w-full max-w-lg"
+        className="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -171,7 +172,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
           <div className="bg-gray-800/50 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-2">
               <Brain className="w-5 h-5 text-purple-400" />
-              <span className="font-medium">AI Status</span>
+              <span className="font-medium">Current Status</span>
             </div>
             
             {aiConfig ? (
@@ -208,7 +209,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
               <label className="font-medium">Choose AI Provider</label>
             </div>
             
-            {/* Anthropic API Key */}
+            {/* Anthropic API */}
             <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
               selectedProvider === 'anthropic' 
                 ? 'border-blue-500 bg-blue-500/10' 
@@ -222,9 +223,15 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <h4 className="font-medium text-white">Anthropic API Key</h4>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Direct API access, pay per use. Get a key at console.anthropic.com
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-4 h-4 text-blue-400" />
+                    <h4 className="font-medium text-white">Anthropic API</h4>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    Direct API access, pay per use. Most reliable option.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ~$3 per million input tokens • console.anthropic.com
                   </p>
                 </div>
               </div>
@@ -233,7 +240,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
             {/* OpenRouter */}
             <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
               selectedProvider === 'openrouter' 
-                ? 'border-blue-500 bg-blue-500/10' 
+                ? 'border-green-500 bg-green-500/10' 
                 : 'border-gray-700 hover:border-gray-600'
             }`} onClick={() => setSelectedProvider('openrouter')}>
               <div className="flex items-start gap-3">
@@ -244,9 +251,18 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <h4 className="font-medium text-white">OpenRouter</h4>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Use your Claude Max/Pro subscription. Free tier available. Get a key at openrouter.ai/keys
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-green-400" />
+                    <h4 className="font-medium text-white">OpenRouter</h4>
+                    <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded-full">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    Use your Claude Max/Pro subscription. Free tier available.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Connect subscription at openrouter.ai • Free credits included
                   </p>
                 </div>
               </div>
@@ -255,7 +271,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
             {/* Demo Mode */}
             <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
               selectedProvider === 'demo' 
-                ? 'border-blue-500 bg-blue-500/10' 
+                ? 'border-gray-500 bg-gray-500/10' 
                 : 'border-gray-700 hover:border-gray-600'
             }`} onClick={() => setSelectedProvider('demo')}>
               <div className="flex items-start gap-3">
@@ -266,9 +282,15 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <h4 className="font-medium text-white">Demo Mode</h4>
-                  <p className="text-sm text-gray-400 mt-1">
-                    No key needed. Uses pattern matching for common fleet queries.
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bot className="w-4 h-4 text-gray-400" />
+                    <h4 className="font-medium text-white">Demo Mode</h4>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    No API key needed. Uses pattern matching for common queries.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Good for testing • Limited intelligence compared to AI modes
                   </p>
                 </div>
               </div>
@@ -323,7 +345,7 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
             <button
               onClick={handleSaveKey}
               disabled={isLoading || (selectedProvider !== 'demo' && !apiKey.trim())}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -333,67 +355,70 @@ export default function AISettingsModal({ isOpen, onClose, onConfigChange }: Pro
               ) : selectedProvider === 'demo' ? (
                 'Use Demo Mode'
               ) : (
-                `Configure ${selectedProvider === 'anthropic' ? 'Anthropic' : 'OpenRouter'} API Key`
+                `Configure ${selectedProvider === 'anthropic' ? 'Anthropic' : 'OpenRouter'}`
               )}
             </button>
           </div>
 
-          {/* Information based on selected provider */}
+          {/* Provider-specific Information */}
           {selectedProvider === 'anthropic' && (
             <div className="bg-blue-900/20 border border-blue-800/30 rounded-lg p-4">
-              <h4 className="font-medium text-blue-300 mb-2">How to get an Anthropic API key:</h4>
+              <h4 className="font-medium text-blue-300 mb-2 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                How to get an Anthropic API key:
+              </h4>
               <div className="space-y-2 text-sm text-blue-200">
                 <p>1. Visit <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
                   console.anthropic.com <ExternalLink className="w-3 h-3" />
                 </a></p>
                 <p>2. Sign up or log in to your account</p>
                 <p>3. Navigate to API Keys and create a new key</p>
-                <p>4. Copy and paste it here</p>
+                <p>4. Add credit to your account for pay-per-use billing</p>
               </div>
             </div>
           )}
 
           {selectedProvider === 'openrouter' && (
-            <div className="bg-purple-900/20 border border-purple-800/30 rounded-lg p-4">
-              <h4 className="font-medium text-purple-300 mb-2">How to get an OpenRouter API key:</h4>
-              <div className="space-y-2 text-sm text-purple-200">
-                <p>1. Visit <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
-                  openrouter.ai/keys <ExternalLink className="w-3 h-3" />
-                </a></p>
-                <p>2. Sign up or log in to your account</p>
-                <p>3. Create a new API key</p>
-                <p>4. Copy and paste it here</p>
-              </div>
-              <div className="mt-3 pt-3 border-t border-purple-800/30">
-                <p className="text-xs text-purple-300">
-                  <strong>Tip:</strong> If you have Claude Max ($100/mo) or Pro ($20/mo), you can use your subscription credits instead of paying per API call.
-                </p>
+            <div className="bg-green-900/20 border border-green-800/30 rounded-lg p-4">
+              <h4 className="font-medium text-green-300 mb-2 flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                How to use OpenRouter with Claude Max/Pro:
+              </h4>
+              <div className="space-y-2 text-sm text-green-200">
+                <p>1. Visit <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                  openrouter.ai <ExternalLink className="w-3 h-3" />
+                </a> and sign up</p>
+                <p>2. Go to Keys and create a new API key</p>
+                <p>3. Connect your Claude subscription or use free tier credits</p>
+                <p>4. Free tier includes limited Claude usage without subscription</p>
               </div>
             </div>
           )}
 
           {selectedProvider === 'demo' && (
-            <div className="bg-yellow-900/20 border border-yellow-800/30 rounded-lg p-4">
-              <h4 className="font-medium text-yellow-300 mb-2">Demo Mode</h4>
-              <p className="text-sm text-yellow-200">
-                Demo mode uses intelligent pattern-matching for common fleet queries. 
-                It works without any API keys but provides less sophisticated responses than full AI.
-              </p>
-              <div className="mt-3 pt-3 border-t border-yellow-800/30">
-                <p className="text-xs text-yellow-300">
-                  Good for: Basic fleet queries, safety scores, idle analysis, maintenance alerts.
-                </p>
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-300 mb-2 flex items-center gap-2">
+                <Bot className="w-4 h-4" />
+                Demo Mode Features:
+              </h4>
+              <div className="space-y-1 text-sm text-gray-300">
+                <p>• Works instantly without any setup or API keys</p>
+                <p>• Provides intelligent responses to common fleet queries</p>
+                <p>• Includes data visualizations and insights</p>
+                <p>• Great for testing and basic fleet analysis</p>
               </div>
             </div>
           )}
 
-          {/* Privacy notice for all modes */}
-          <div className="bg-gray-800/30 border border-gray-700/30 rounded-lg p-4">
-            <p className="text-xs text-gray-400">
-              <strong>Privacy:</strong> API keys are stored in memory only and never saved to disk.
-              You'll need to re-enter keys after server restarts.
-            </p>
-          </div>
+          {/* Privacy Note */}
+          {selectedProvider !== 'demo' && (
+            <div className="bg-gray-800/30 rounded-lg p-3">
+              <p className="text-xs text-gray-400">
+                <strong>Privacy:</strong> API keys are stored in memory only and never saved to disk.
+                You'll need to re-enter after server restarts.
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
