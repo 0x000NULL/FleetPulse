@@ -52,6 +52,7 @@ def main():
             "activeFrom": "2020-01-01T00:00:00Z",
             "activeTo": "2099-12-31T23:59:59Z",
             "zoneTypes": [{"id": "ZoneTypeCustomerId"}],
+            "groups": [{"id": "GroupCompanyId"}],
             "points": pts,
         }
         try:

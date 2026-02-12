@@ -8,14 +8,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 from geotab_client import GeotabClient
 
 DRIVERS = [
-    {"firstName": "Marcus", "lastName": "Rivera", "name": "Marcus Rivera"},
-    {"firstName": "Aisha", "lastName": "Patel", "name": "Aisha Patel"},
-    {"firstName": "Jake", "lastName": "Thompson", "name": "Jake Thompson"},
-    {"firstName": "Sofia", "lastName": "Chen", "name": "Sofia Chen"},
-    {"firstName": "DeShawn", "lastName": "Williams", "name": "DeShawn Williams"},
-    {"firstName": "Emily", "lastName": "Nakamura", "name": "Emily Nakamura"},
-    {"firstName": "Carlos", "lastName": "Gutierrez", "name": "Carlos Gutierrez"},
-    {"firstName": "Rachel", "lastName": "Kim", "name": "Rachel Kim"},
+    {"firstName": "Marcus", "lastName": "Rivera", "name": "marcus.rivera@fleetpulse"},
+    {"firstName": "Aisha", "lastName": "Patel", "name": "aisha.patel@fleetpulse"},
+    {"firstName": "Jake", "lastName": "Thompson", "name": "jake.thompson@fleetpulse"},
+    {"firstName": "Sofia", "lastName": "Chen", "name": "sofia.chen@fleetpulse"},
+    {"firstName": "DeShawn", "lastName": "Williams", "name": "deshawn.williams@fleetpulse"},
+    {"firstName": "Emily", "lastName": "Nakamura", "name": "emily.nakamura@fleetpulse"},
+    {"firstName": "Carlos", "lastName": "Gutierrez", "name": "carlos.gutierrez@fleetpulse"},
+    {"firstName": "Rachel", "lastName": "Kim", "name": "rachel.kim@fleetpulse"},
 ]
 
 
@@ -30,7 +30,9 @@ def main():
                 "firstName": d["firstName"],
                 "lastName": d["lastName"],
                 "name": d["name"],
+                "password": "FleetPulse2026!",
                 "securityGroups": [{"id": "GroupEverythingSecurityId"}],
+                "companyGroups": [{"id": "GroupCompanyId"}],
             })
             print(f"  ✅ Created driver '{d['name']}' → {driver_id}")
         except Exception as e:
