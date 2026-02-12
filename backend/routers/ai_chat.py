@@ -4,9 +4,10 @@ import os
 import json
 import re
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal
 
 import anthropic
+import openai
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -17,56 +18,124 @@ load_dotenv()
 
 router = APIRouter()
 
-# In-memory storage for API key (not persisted to disk for security)
-_anthropic_api_key: Optional[str] = None
-_anthropic_client: Optional[anthropic.Anthropic] = None
+# Provider type definition
+ProviderType = Literal["anthropic", "openrouter", "demo"]
 
-# Initialize from environment variable if available
-def _initialize_anthropic():
-    """Initialize Anthropic client from environment variable."""
-    global _anthropic_api_key, _anthropic_client
+# In-memory storage for API configurations (not persisted to disk for security)
+_ai_config = {
+    "provider": "demo",
+    "api_key": None,
+    "client": None
+}
+
+# Initialize from environment variables if available
+def _initialize_from_env():
+    """Initialize AI client from environment variables."""
+    global _ai_config
     
-    env_key = os.getenv("ANTHROPIC_API_KEY")
-    if env_key and env_key != "your-key-here":
-        _anthropic_api_key = env_key
-        _anthropic_client = anthropic.Anthropic(api_key=env_key)
+    # Check for Anthropic API key
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    if anthropic_key and anthropic_key != "your-key-here":
+        success = _set_api_key(anthropic_key, "anthropic")
+        if success:
+            return
+    
+    # Check for OpenRouter API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY") 
+    if openrouter_key and openrouter_key != "your-key-here":
+        success = _set_api_key(openrouter_key, "openrouter")
+        if success:
+            return
 
 # Initialize on module load
-_initialize_anthropic()
+_initialize_from_env()
 
 
-def _set_api_key(api_key: str) -> bool:
-    """Set API key in memory and initialize client."""
-    global _anthropic_api_key, _anthropic_client
+def _set_api_key(api_key: str, provider: ProviderType) -> bool:
+    """Set API key and provider in memory and initialize client."""
+    global _ai_config
     
     try:
-        # Test the API key by making a simple call
-        test_client = anthropic.Anthropic(api_key=api_key)
-        # Small test message to verify the key works
-        test_response = test_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=10,
-            messages=[{"role": "user", "content": "Test"}]
-        )
-        
-        # If we get here, the key works
-        _anthropic_api_key = api_key
-        _anthropic_client = test_client
-        return True
+        if provider == "anthropic":
+            # Test Anthropic API key
+            test_client = anthropic.Anthropic(api_key=api_key)
+            test_response = test_client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=10,
+                messages=[{"role": "user", "content": "Test"}]
+            )
+            
+            _ai_config = {
+                "provider": "anthropic",
+                "api_key": api_key,
+                "client": test_client
+            }
+            return True
+            
+        elif provider == "openrouter":
+            # Test OpenRouter API key
+            test_client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+            
+            # Test with a minimal request
+            test_response = test_client.chat.completions.create(
+                model="anthropic/claude-sonnet-4-20250514",
+                messages=[{"role": "user", "content": "Test"}],
+                max_tokens=10
+            )
+            
+            _ai_config = {
+                "provider": "openrouter", 
+                "api_key": api_key,
+                "client": test_client
+            }
+            return True
+            
+        else:
+            return False
         
     except Exception as e:
-        print(f"API key validation failed: {e}")
+        print(f"API key validation failed for {provider}: {e}")
         return False
 
 
-def _get_claude_client() -> Optional[anthropic.Anthropic]:
-    """Get the Claude client if available."""
-    return _anthropic_client
+def _get_ai_client():
+    """Get the current AI client if available."""
+    return _ai_config.get("client")
+
+
+def _get_provider() -> ProviderType:
+    """Get current provider."""
+    return _ai_config.get("provider", "demo")
 
 
 def _is_ai_enabled() -> bool:
     """Check if AI is enabled (API key is set)."""
-    return _anthropic_client is not None
+    return _ai_config.get("client") is not None and _ai_config.get("provider") != "demo"
+
+
+def _get_model_name() -> str:
+    """Get the model name based on provider."""
+    provider = _get_provider()
+    if provider == "anthropic":
+        return "claude-sonnet-4-20250514"
+    elif provider == "openrouter":
+        return "anthropic/claude-sonnet-4-20250514"
+    else:
+        return "pattern-matching"
+
+
+def _get_provider_display_name() -> str:
+    """Get human-readable provider name."""
+    provider = _get_provider()
+    if provider == "anthropic":
+        return "Anthropic API"
+    elif provider == "openrouter":
+        return "OpenRouter (Claude Max/Pro)"
+    else:
+        return "Demo Mode"
 
 
 async def _fetch_fleet_context() -> str:
@@ -191,12 +260,14 @@ class FleetInsight(BaseModel):
 
 class ApiKeyRequest(BaseModel):
     api_key: str
+    provider: ProviderType = "anthropic"
 
 
 class ConfigResponse(BaseModel):
     ai_enabled: bool
     model: Optional[str] = None
-    provider: str = "anthropic"
+    provider: ProviderType = "demo"
+    provider_name: str = "Demo Mode"
 
 
 # Mock fleet data for intelligent responses
@@ -515,17 +586,19 @@ def general_handler(message: str) -> ChatResponse:
     )
 
 
-async def _process_claude_query(message: str, conversation_history: List[Dict[str, str]]) -> ChatResponse:
-    """Process query using Claude AI."""
-    client = _get_claude_client()
-    if not client:
+async def _process_ai_query(message: str, conversation_history: List[Dict[str, str]]) -> ChatResponse:
+    """Process query using AI (Anthropic or OpenRouter)."""
+    client = _get_ai_client()
+    provider = _get_provider()
+    
+    if not client or provider == "demo":
         raise HTTPException(status_code=503, detail="AI service not available")
     
     try:
         # Fetch current fleet context
         fleet_context = await _fetch_fleet_context()
         
-        # Build conversation history for Claude
+        # Build conversation history
         messages = []
         
         # Add conversation history
@@ -543,18 +616,32 @@ Please analyze this question in the context of the current fleet data and provid
 
         messages.append({"role": "user", "content": current_message})
         
-        # Call Claude
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,
-            system=CLAUDE_SYSTEM_PROMPT,
-            messages=messages
-        )
+        # Call AI service based on provider
+        response_text = ""
+        
+        if provider == "anthropic":
+            # Direct Anthropic API
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=2000,
+                system=CLAUDE_SYSTEM_PROMPT,
+                messages=messages
+            )
+            response_text = response.content[0].text
+            
+        elif provider == "openrouter":
+            # OpenRouter (OpenAI-compatible)
+            openai_messages = [{"role": "system", "content": CLAUDE_SYSTEM_PROMPT}] + messages
+            
+            response = client.chat.completions.create(
+                model="anthropic/claude-sonnet-4-20250514",
+                messages=openai_messages,
+                max_tokens=2000,
+                temperature=0.7
+            )
+            response_text = response.choices[0].message.content
         
         # Parse response for structured data
-        response_text = response.content[0].text
-        
-        # Try to extract structured data (chart suggestions, insights)
         chart_type = None
         data = None
         insights = []
@@ -575,7 +662,7 @@ Please analyze this question in the context of the current fleet data and provid
                 line.startswith('*') or re.match(r'^\d+\.', line)):
                 insights.append(line.lstrip('•-* ').lstrip('0123456789. '))
         
-        # If Claude suggested a specific visualization, try to provide relevant data
+        # If AI suggested a specific visualization, try to provide relevant data
         if chart_type and any(keyword in message.lower() for keyword in ['safety', 'score']):
             data = [{"location": loc["location"], "score": loc["score"], "color": "#10b981" if loc["score"] >= 90 else "#f59e0b" if loc["score"] >= 85 else "#ef4444"} for loc in FLEET_DATA["safety_scores"]]
         elif chart_type and "idle" in message.lower():
@@ -589,12 +676,12 @@ Please analyze this question in the context of the current fleet data and provid
             chart_type=chart_type,
             insights=insights[:3],  # Top 3 insights
             confidence=0.95,
-            model="claude-sonnet-4-20250514",
+            model=_get_model_name(),
             is_ai_powered=True
         )
         
     except Exception as e:
-        print(f"Claude API error: {e}")
+        print(f"{provider} API error: {e}")
         # Fall back to pattern matching
         return await _process_fallback_query(message)
 
@@ -631,7 +718,7 @@ async def process_chat_query(chat_message: ChatMessage):
     """Process a natural language fleet query with Claude AI or fallback to pattern matching."""
     try:
         if _is_ai_enabled():
-            return await _process_claude_query(
+            return await _process_ai_query(
                 chat_message.message, 
                 chat_message.conversation_history or []
             )
@@ -667,7 +754,9 @@ async def process_chat_stream(chat_message: ChatMessage):
             yield f"data: {json.dumps(response.dict())}\n\n"
             return
         
-        client = _get_claude_client()
+        client = _get_ai_client()
+        provider = _get_provider()
+        
         if not client:
             yield f"data: {json.dumps({'error': 'AI service not available'})}\n\n"
             return
@@ -691,22 +780,40 @@ Please analyze this question in the context of the current fleet data and provid
 
             messages.append({"role": "user", "content": current_message})
             
-            # Stream from Claude
             accumulated_text = ""
-            with client.messages.stream(
-                model="claude-sonnet-4-20250514",
-                max_tokens=2000,
-                system=CLAUDE_SYSTEM_PROMPT,
-                messages=messages
-            ) as stream:
+            
+            if provider == "anthropic":
+                # Stream from Anthropic
+                with client.messages.stream(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=2000,
+                    system=CLAUDE_SYSTEM_PROMPT,
+                    messages=messages
+                ) as stream:
+                    for chunk in stream:
+                        if chunk.type == "content_block_delta":
+                            if chunk.delta.type == "text_delta":
+                                text_chunk = chunk.delta.text
+                                accumulated_text += text_chunk
+                                yield f"data: {json.dumps({'chunk': text_chunk, 'type': 'text'})}\n\n"
+                                
+            elif provider == "openrouter":
+                # Stream from OpenRouter
+                openai_messages = [{"role": "system", "content": CLAUDE_SYSTEM_PROMPT}] + messages
+                
+                stream = client.chat.completions.create(
+                    model="anthropic/claude-sonnet-4-20250514",
+                    messages=openai_messages,
+                    max_tokens=2000,
+                    temperature=0.7,
+                    stream=True
+                )
+                
                 for chunk in stream:
-                    if chunk.type == "content_block_delta":
-                        if chunk.delta.type == "text_delta":
-                            text_chunk = chunk.delta.text
-                            accumulated_text += text_chunk
-                            
-                            # Stream the text chunk
-                            yield f"data: {json.dumps({'chunk': text_chunk, 'type': 'text'})}\n\n"
+                    if chunk.choices[0].delta.content is not None:
+                        text_chunk = chunk.choices[0].delta.content
+                        accumulated_text += text_chunk
+                        yield f"data: {json.dumps({'chunk': text_chunk, 'type': 'text'})}\n\n"
             
             # After streaming is complete, analyze for charts and insights
             chart_type = None
@@ -743,7 +850,7 @@ Please analyze this question in the context of the current fleet data and provid
                 'chart_type': chart_type,
                 'data': data,
                 'insights': insights[:3],
-                'model': 'claude-sonnet-4-20250514',
+                'model': _get_model_name(),
                 'is_ai_powered': True
             }
             yield f"data: {json.dumps(final_data)}\n\n"
@@ -764,15 +871,20 @@ Please analyze this question in the context of the current fleet data and provid
 
 @router.post("/config")
 async def set_api_key(request: ApiKeyRequest):
-    """Set Anthropic API key in memory (not persisted to disk)."""
+    """Set API key and provider in memory (not persisted to disk)."""
     try:
-        success = _set_api_key(request.api_key)
+        success = _set_api_key(request.api_key, request.provider)
         if success:
-            return {"message": "API key configured successfully", "ai_enabled": True}
+            provider_name = _get_provider_display_name()
+            return {
+                "message": f"API key configured successfully for {provider_name}",
+                "ai_enabled": True,
+                "provider": request.provider
+            }
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid API key or failed to connect to Anthropic"
+                detail=f"Invalid API key or failed to connect to {request.provider.title()}"
             )
     except Exception as e:
         raise HTTPException(
@@ -784,10 +896,12 @@ async def set_api_key(request: ApiKeyRequest):
 @router.get("/config", response_model=ConfigResponse)
 async def get_ai_config():
     """Get current AI configuration status (never returns the API key)."""
+    provider = _get_provider()
     return ConfigResponse(
         ai_enabled=_is_ai_enabled(),
-        model="claude-sonnet-4-20250514" if _is_ai_enabled() else None,
-        provider="anthropic"
+        model=_get_model_name() if _is_ai_enabled() else None,
+        provider=provider,
+        provider_name=_get_provider_display_name()
     )
 
 
