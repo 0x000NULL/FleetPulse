@@ -42,8 +42,8 @@ export default function VehicleList({ vehicles, loading }: Props) {
 
     // Sort vehicles
     filtered.sort((a, b) => {
-      let aVal: any = a[sortBy] || ''
-      let bVal: any = b[sortBy] || ''
+      let aVal: any = (a as any)[sortBy] || ''
+      let bVal: any = (b as any)[sortBy] || ''
       
       if (sortBy === 'speed') {
         aVal = a.position?.speed || 0
@@ -153,7 +153,7 @@ export default function VehicleList({ vehicles, loading }: Props) {
             >
               <option value="all">All Locations</option>
               {uniqueLocations.map(location => (
-                <option key={location} value={location}>{location}</option>
+                <option key={location} value={location || ''}>{location}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

@@ -92,7 +92,7 @@ const cardVariants = {
     y: 0, 
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 400,
       damping: 25
     }
@@ -100,7 +100,7 @@ const cardVariants = {
 }
 
 export default function Dashboard({ overview, loading }: Props) {
-  const sparklineData = (data: number[]) => data.map((value, index) => ({ x: index, y: value }))
+  const sparklineData = (data: readonly number[] | number[]) => [...data].map((value, index) => ({ x: index, y: value }))
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
@@ -131,7 +131,7 @@ export default function Dashboard({ overview, loading }: Props) {
           variants={cardVariants}
           whileHover={{ 
             scale: 1.02,
-            transition: { type: "spring", stiffness: 400, damping: 25 }
+            transition: { type: "spring" as const, stiffness: 400, damping: 25 }
           }}
           className={`relative bg-gradient-to-br ${c.color} rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-white/10 backdrop-blur-sm group overflow-hidden`}
         >
