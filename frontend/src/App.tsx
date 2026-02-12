@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import Dashboard from './components/Dashboard'
 import FleetMap from './components/FleetMap'
 import VehicleList from './components/VehicleList'
@@ -5,7 +6,8 @@ import SafetyScorecard from './components/SafetyScorecard'
 import Leaderboard from './components/Leaderboard'
 import AlertFeed from './components/AlertFeed'
 import LocationCard from './components/LocationCard'
-import { useFleetOverview, useVehicles, useSafetyScores, useLeaderboard, useAlerts, useLocations } from './hooks/useGeotab'
+import AgenticMonitor from './components/AgenticMonitor'
+import { useFleetOverview, useVehicles, useSafetyScores, useLeaderboard, useAlerts, useLocations, useMonitorAlerts, useMonitorStatus } from './hooks/useGeotab'
 
 export default function App() {
   const overview = useFleetOverview()
@@ -14,6 +16,15 @@ export default function App() {
   const leaderboard = useLeaderboard()
   const alerts = useAlerts()
   const locations = useLocations()
+  const monitorAlerts = useMonitorAlerts()
+  const monitorStatus = useMonitorStatus()
+
+  const triggerCheck = useCallback(() => {
+    fetch('/api/monitor/check', { method: 'POST' }).then(() => {
+      monitorAlerts.refresh()
+      monitorStatus.refresh()
+    })
+  }, [monitorAlerts, monitorStatus])
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -45,6 +56,14 @@ export default function App() {
           </div>
           <AlertFeed alerts={alerts.data} loading={alerts.loading} />
         </div>
+
+        {/* Agentic Monitor */}
+        <AgenticMonitor
+          alerts={monitorAlerts.data}
+          status={monitorStatus.data}
+          loading={monitorAlerts.loading}
+          onTriggerCheck={triggerCheck}
+        />
 
         {/* Safety + Leaderboard row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

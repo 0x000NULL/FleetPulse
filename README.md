@@ -1,283 +1,165 @@
-<![CDATA[<div align="center">
+# 🚗 FleetPulse — Multi-Location Fleet Intelligence Platform
 
-# 🚗💨 FleetPulse
+**GeoTab Hackathon 2026 Entry** | Budget Rent a Car Las Vegas Demo
 
-### **Real-Time Fleet Intelligence for the Streets of Las Vegas**
+FleetPulse is an intelligent fleet management dashboard for multi-location rental operations. It connects to GeoTab's telematics API to provide real-time vehicle tracking, safety scoring, gamification, and **autonomous anomaly detection** across 8 Budget Rent a Car locations in Las Vegas.
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)](https://leafletjs.com)
-[![Geotab](https://img.shields.io/badge/Geotab_API-FF6B00?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2Zy8+&logoColor=white)](https://developers.geotab.com)
-
----
-
-**FleetPulse** is a multi-location fleet intelligence platform built for the [Geotab Vibe Coding Competition 2026](https://www.geotab.com).  
-It monitors **8 Budget Rent a Car locations across Las Vegas** in real time — combining live vehicle tracking, AI-powered anomaly detection, and driver gamification into a single, beautiful dashboard.
-
-> *"We don't just track vehicles. We make fleets smarter, drivers safer, and operations effortless."*
-
-[🚀 Quick Start](#-quick-start) · [📖 Features](#-the-three-pillars) · [🏗️ Architecture](#%EF%B8%8F-architecture) · [📡 API Docs](#-api-documentation)
-
-</div>
-
----
-
-## 🏆 The Three Pillars
-
-FleetPulse is built around three core experiences:
-
-### 1️⃣ Fleet Intelligence Dashboard
-> *Complete operational awareness at a glance*
-
-A real-time command center showing all 8 Budget locations on an interactive map. Track every vehicle's position, status, speed, and location assignment — updated live from the Geotab API.
-
-- 🗺️ **Live Map** — Leaflet-powered map with vehicle markers, geofences, and location clusters
-- 📊 **Fleet Overview** — Active/idle/parked/offline counts, trip stats, distance metrics
-- 📍 **Per-Location Breakdown** — Vehicle counts, safety scores, and activity per branch
-- 🔍 **Vehicle Detail** — Drill into any vehicle for position, odometer, last contact, and trip history
-
-### 2️⃣ Agentic Fleet Monitor
-> *Intelligent alerts that think before they scream*
-
-A rules-based anomaly detection engine that monitors exception events from Geotab and surfaces actionable alerts — not noise.
-
-- 🚨 **Smart Alerts** — Speed violations, geofence breaches, after-hours usage, extended idling
-- ⚙️ **Configurable Rules** — Enable/disable rules, adjust thresholds via API
-- 📈 **Severity Tiers** — Low → Medium → High → Critical, with intelligent categorization
-- 🔔 **Real-Time Feed** — Latest 100 alerts with vehicle context, sorted by recency
-
-### 3️⃣ FleetChamp — Driver Gamification
-> *Turn safe driving into a competition worth winning*
-
-A gamification layer that scores drivers on safety, awards badges, runs weekly challenges, and ranks locations against each other.
-
-- 🏅 **Driver Leaderboard** — Points-based ranking derived from safety scores
-- 🎖️ **Badge System** — Speed Demon Free 🏅, Smooth Operator 🎯, Eco Champion 🌿, Perfect Week ⭐, Road Warrior 🛣️
-- 🎯 **Weekly Challenges** — "Zero Speeding" and "Safe Week" challenges with progress tracking
-- 🏢 **Location Rankings** — Which Budget branch has the safest drivers? Now there's a scoreboard.
-
----
-
-## 🖼️ Screenshots
-
-<div align="center">
-
-| | |
-|:---:|:---:|
-| ![Dashboard](https://via.placeholder.com/600x350/1a1a2e/00d4aa?text=Fleet+Intelligence+Dashboard) | ![Map View](https://via.placeholder.com/600x350/1a1a2e/ff6b6b?text=Live+Vehicle+Map) |
-| **Fleet Intelligence Dashboard** — Real-time overview of all 8 locations with KPI cards, trip stats, and fleet status breakdown | **Live Vehicle Map** — Interactive Leaflet map showing vehicle positions, geofences, and location clusters across Las Vegas |
-| ![Safety](https://via.placeholder.com/600x350/1a1a2e/ffd93d?text=Safety+Scorecard) | ![Leaderboard](https://via.placeholder.com/600x350/1a1a2e/6bcb77?text=FleetChamp+Leaderboard) |
-| **Safety Scorecard** — Per-vehicle safety scores with incident breakdowns, trend indicators, and risk rankings | **FleetChamp Leaderboard** — Driver rankings, earned badges, weekly challenges, and inter-location competition |
-| ![Alerts](https://via.placeholder.com/600x350/1a1a2e/4ecdc4?text=Alert+Feed) | ![Locations](https://via.placeholder.com/600x350/1a1a2e/ff8a5c?text=Location+Cards) |
-| **Alert Feed** — Real-time anomaly alerts with severity badges, vehicle context, and configurable rules | **Location Cards** — Per-branch stats showing vehicle counts, active units, and safety performance |
-
-</div>
-
----
+![FleetPulse](https://img.shields.io/badge/Status-Live-green) ![GeoTab](https://img.shields.io/badge/GeoTab-Integrated-blue) ![Vehicles](https://img.shields.io/badge/Vehicles-50-orange)
 
 ## 🏗️ Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        FleetPulse Platform                       │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│   ┌─────────────────────────────────────────────────────────┐   │
-│   │                  React + TypeScript Frontend              │   │
-│   │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │   │
-│   │  │Dashboard │ │ FleetMap │ │  Safety  │ │FleetChamp │  │   │
-│   │  │ Overview │ │ (Leaflet)│ │Scorecard │ │Leaderboard│  │   │
-│   │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └─────┬─────┘  │   │
-│   │       └─────────────┴────────────┴─────────────┘         │   │
-│   │                        Tailwind CSS                       │   │
-│   └──────────────────────────┬──────────────────────────────┘   │
-│                              │ HTTP/REST                         │
-│   ┌──────────────────────────▼──────────────────────────────┐   │
-│   │                   FastAPI Backend                         │   │
-│   │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │   │
-│   │  │Dashboard │ │ Vehicle  │ │  Safety  │ │  Alert    │  │   │
-│   │  │ Router   │ │  Router  │ │  Router  │ │  Router   │  │   │
-│   │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └─────┬─────┘  │   │
-│   │       └─────────────┴────────────┴─────────────┘         │   │
-│   │                    Service Layer                          │   │
-│   │  ┌────────────┐ ┌────────────┐ ┌─────────────────────┐  │   │
-│   │  │   Fleet    │ │   Safety   │ │   Gamification      │  │   │
-│   │  │  Service   │ │  Service   │ │     Service         │  │   │
-│   │  └────────────┘ └────────────┘ └─────────────────────┘  │   │
-│   └──────────────────────────┬──────────────────────────────┘   │
-│                              │ mygeotab SDK                      │
-│   ┌──────────────────────────▼──────────────────────────────┐   │
-│   │              GeotabClient (Singleton)                     │   │
-│   │     Auto-auth • Session caching • Re-auth on expiry      │   │
-│   └──────────────────────────┬──────────────────────────────┘   │
-│                              │                                   │
-└──────────────────────────────┼──────────────────────────────────┘
-                               │ HTTPS
-                    ┌──────────▼──────────┐
-                    │   Geotab MyGeotab   │
-                    │   Cloud Platform    │
-                    │  (my.geotab.com)    │
-                    └─────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                   React + Vite Frontend              │
+│  Dashboard │ Fleet Map │ Leaderboard │ Agent Monitor │
+└────────────────────────┬─────────────────────────────┘
+                         │ /api/* (Vite proxy)
+┌────────────────────────▼─────────────────────────────┐
+│                FastAPI Backend (8080)                 │
+│  /dashboard │ /vehicles │ /safety │ /gamification    │
+│  /alerts │ /monitor (agentic)                        │
+├──────────────────────────────────────────────────────┤
+│              Agentic Monitor (background)            │
+│  Speed anomalies │ Idle detection │ Off-route alerts │
+│  After-hours │ Fleet patterns │ Location imbalances  │
+└────────────────────────┬─────────────────────────────┘
+                         │ mygeotab SDK
+                    ┌────▼────┐
+                    │ GeoTab  │
+                    │   API   │
+                    └─────────┘
 ```
 
----
+## ✨ Key Features
 
-## 🛠️ Tech Stack
+### 🤖 Agentic Monitor (Key Differentiator)
+An autonomous intelligence layer that continuously analyzes fleet telemetry:
+- **Speed Anomaly Detection** — Flags vehicles exceeding speed thresholds with severity levels
+- **Excessive Idle Detection** — Identifies vehicles idle for extended periods
+- **Off-Route Alerts** — Detects vehicles leaving the Las Vegas metro area
+- **After-Hours Monitoring** — Flags activity during 11 PM – 5 AM
+- **Fleet Pattern Analysis** — Identifies unusual fleet-wide activity patterns
+- **Location Inventory Balancing** — Alerts when locations have zero or excess vehicles
+- Runs every 60 seconds with full alert history and pattern tracking
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | React 18 + TypeScript | Interactive SPA |
-| **Styling** | Tailwind CSS | Utility-first responsive design |
-| **Mapping** | Leaflet + React Leaflet | Live vehicle map with geofences |
-| **Backend** | FastAPI (Python 3.12) | High-performance async REST API |
-| **Telematics** | Geotab SDK (`mygeotab`) | Vehicle data, trips, exceptions, zones |
-| **Validation** | Pydantic v2 | Request/response models with strict typing |
-| **Build** | Vite | Lightning-fast frontend builds |
+### 🏆 FleetChamp Gamification
+- Driver safety scoring with points (base 1000 × safety %, -50 per incident)
+- Badges: 🏅 Speed Demon Free, 🎯 Smooth Operator, 🌿 Eco Champion, ⭐ Perfect Week
+- Per-driver and per-location leaderboards
+- Location vs location competition rankings
+- Weekly challenges (Safe Week, Zero Speeding)
 
----
+### 📊 Real-Time Dashboard
+- KPI cards: total vehicles, active, idle, parked, trips, distance, avg duration
+- Dark Leaflet map with vehicle markers (color-coded by status) and location zones
+- Alert feed with severity-based styling (critical/high/medium/low)
+- Safety scorecard with trend indicators and progress bars
+- 30-second vehicle refresh, 15-second alert refresh
+
+### 📍 8 Budget Rent a Car Locations
+W Sahara · Golden Nugget · Center Strip · Tropicana · LAS Airport · Gibson · Henderson Executive · Losee
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
-- Python 3.11+
+- Python 3.10+
 - Node.js 18+
-- A Geotab account with API access
+- GeoTab credentials (set in `~/.openclaw/.env.geotab` or project `.env`)
 
-### 1. Clone & configure
-
-```bash
-git clone https://github.com/0x000NULL/FleetPulse.git
-cd FleetPulse
-
-# Create your environment file
-cp .env.example .env
-# Edit .env with your Geotab credentials:
-#   GEOTAB_DATABASE=your_database
-#   GEOTAB_USERNAME=your_email
-#   GEOTAB_PASSWORD=your_password
-#   GEOTAB_SERVER=my.geotab.com
+### Environment Variables
+```env
+GEOTAB_DATABASE=demo_fleetpulse
+GEOTAB_USERNAME=your_username
+GEOTAB_PASSWORD=your_password
+GEOTAB_SERVER=my.geotab.com
 ```
 
-### 2. Start the backend
-
+### Backend
 ```bash
 pip install -r requirements.txt
-
-# (Optional) Set up geofences and seed driver data
-python scripts/setup_zones.py
-python scripts/seed_drivers.py
-
-# Run the API server
 cd backend
-uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+uvicorn app:app --port 8080
 ```
 
-### 3. Start the frontend
-
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 4. Open the dashboard
+Open http://localhost:5173 — the Vite dev server proxies API calls to the backend on port 8080.
 
-Navigate to **http://localhost:5173** — you're live! 🎉
+## 📡 API Endpoints
 
----
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/health` | Health check |
+| `GET /api/dashboard/overview` | Fleet KPIs |
+| `GET /api/dashboard/locations` | Per-location stats |
+| `GET /api/vehicles/` | All vehicles with positions |
+| `GET /api/vehicles/{id}` | Single vehicle |
+| `GET /api/safety/scores` | Safety scores per vehicle |
+| `GET /api/alerts/recent` | Exception-based alerts |
+| `GET /api/gamification/leaderboard` | Driver rankings |
+| `GET /api/gamification/challenges` | Active challenges |
+| `GET /api/gamification/location-rankings` | Location competition |
+| `GET /api/monitor/alerts` | Agentic monitor alerts |
+| `GET /api/monitor/status` | Monitor status & patterns |
+| `POST /api/monitor/check` | Trigger manual check |
 
-## 📡 API Documentation
+## 🛠️ Tech Stack
 
-Once the backend is running, visit **http://localhost:8080/docs** for the interactive Swagger UI.
+- **Backend:** Python, FastAPI, mygeotab SDK, Pydantic v2
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Leaflet, Recharts
+- **Telemetry:** GeoTab API (50 vehicles, real-time DeviceStatusInfo, Trips, ExceptionEvents)
+- **Architecture:** REST API with background agentic monitoring thread
 
-### Endpoints Overview
+## 📂 Project Structure
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/health` | Service health check |
-| `GET` | `/api/dashboard/overview` | Fleet-wide KPIs and trip statistics |
-| `GET` | `/api/dashboard/locations` | Per-location vehicle counts and safety scores |
-| `GET` | `/api/vehicles/` | All vehicles with position, status, and location |
-| `GET` | `/api/vehicles/{id}` | Single vehicle detail |
-| `GET` | `/api/safety/scores?days=7` | Per-vehicle safety scores with trend analysis |
-| `GET` | `/api/gamification/leaderboard` | Driver leaderboard with points and badges |
-| `GET` | `/api/gamification/challenges` | Active weekly challenges |
-| `GET` | `/api/gamification/location-rankings` | Inter-location safety competition |
-| `GET` | `/api/alerts/recent?hours=24` | Recent anomaly alerts |
-| `GET` | `/api/alerts/rules` | Configured alert rules |
-| `PATCH` | `/api/alerts/rules/{id}` | Update alert rule (enable/disable, threshold) |
+```
+FleetPulse/
+├── backend/
+│   ├── app.py                    # FastAPI app with CORS, router registration
+│   ├── geotab_client.py          # GeoTab API wrapper with auth caching
+│   ├── models.py                 # Pydantic v2 response models
+│   ├── routers/                  # API route handlers
+│   │   ├── dashboard.py
+│   │   ├── vehicles.py
+│   │   ├── safety.py
+│   │   ├── gamification.py
+│   │   ├── alerts.py
+│   │   └── monitor.py            # Agentic monitor endpoints
+│   └── services/                 # Business logic
+│       ├── fleet_service.py      # Vehicle tracking, fleet overview
+│       ├── safety_service.py     # Safety scoring, trend analysis
+│       ├── gamification_service.py # Points, badges, leaderboards
+│       ├── alert_service.py      # Exception-based alerting
+│       └── monitor_service.py    # 🤖 Agentic anomaly detection
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx               # Main layout
+│   │   ├── hooks/useGeotab.ts    # Data fetching hooks with auto-refresh
+│   │   ├── types/fleet.ts        # TypeScript interfaces
+│   │   └── components/           # UI components
+│   │       ├── Dashboard.tsx     # KPI cards
+│   │       ├── FleetMap.tsx      # Leaflet map
+│   │       ├── AlertFeed.tsx     # Alert stream
+│   │       ├── SafetyScorecard.tsx
+│   │       ├── Leaderboard.tsx
+│   │       ├── VehicleList.tsx
+│   │       ├── LocationCard.tsx
+│   │       └── AgenticMonitor.tsx # 🤖 Monitor UI
+│   └── vite.config.ts            # Proxy → backend:8080
+├── scripts/                      # Setup scripts (zones, drivers)
+├── requirements.txt
+└── README.md
+```
 
----
+## 👥 Team
 
-## 🏅 Prize Categories
+Built by **Vex** for the GeoTab Hackathon 2026.
 
-FleetPulse is designed to compete across multiple categories:
+## 📜 License
 
-### 🎨 Vibe Master
-> *Best overall experience and polish*
-
-FleetPulse delivers a cohesive, beautiful experience — from the real-time map to the gamification leaderboard. Every screen is designed with Tailwind CSS for a modern, responsive feel.
-
-### 💡 Innovator
-> *Most creative use of the Geotab platform*
-
-We go beyond basic tracking: safety scoring algorithms, driver gamification with badges and challenges, multi-location competition, and intelligent alert classification — all powered by Geotab exception events and device telemetry.
-
-### 🤝 Most Collaborative
-> *Best team effort and community contribution*
-
-Built as a fully open-source solution that any multi-location fleet can deploy. Clean architecture, typed APIs, and comprehensive documentation make FleetPulse easy to extend and contribute to.
-
----
-
-## 🏢 The Real Fleet Behind FleetPulse
-
-<div align="center">
-
-**This isn't a demo — it's built for a real fleet.**
-
-</div>
-
-FleetPulse was built by **Ethan Aldrich**, CTO of **Budget Rent a Car Las Vegas**, to solve a real problem: managing vehicles across **8 rental locations** spread across the Las Vegas metro area.
-
-| # | Location | Area |
-|---|----------|------|
-| 1 | W Sahara | West Las Vegas |
-| 2 | Golden Nugget | Downtown / Fremont |
-| 3 | Center Strip | The Strip |
-| 4 | Tropicana | South Strip |
-| 5 | LAS Airport | McCarran / Harry Reid |
-| 6 | Gibson | Southeast |
-| 7 | Henderson Executive | Henderson |
-| 8 | Losee | North Las Vegas |
-
-When you're running a fleet across 8 locations in a city that never sleeps, you need more than a spreadsheet. You need **FleetPulse**.
-
----
-
-## 🙏 Credits & Acknowledgments
-
-- **[Geotab](https://www.geotab.com)** — For the incredible telematics platform and SDK that makes this possible
-- **[Geotab Vibe Coding Competition 2026](https://www.geotab.com)** — For inspiring builders to push fleet tech forward
-- **[Google Cloud](https://cloud.google.com)** — Infrastructure and compute
-- The open-source community behind FastAPI, React, Leaflet, Tailwind, and every dependency that powers this project
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-
-**Built with 🎰 in Las Vegas**
-
-*FleetPulse — Because every mile matters.*
-
-</div>
-]]>
+MIT
