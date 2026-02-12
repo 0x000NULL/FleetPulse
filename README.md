@@ -77,9 +77,12 @@ GEOTAB_PASSWORD=your_password
 GEOTAB_SERVER=my.geotab.com
 ```
 
-#### AI-Enhanced Setup (Optional)
+#### AI-Enhanced Setup (Optional - choose one)
 ```env
-# Add this line to enable Claude AI integration
+# Option 1: OpenRouter (connects Claude Max/Pro subscriptions)
+OPENROUTER_API_KEY=your-key-here
+
+# Option 2: Anthropic Direct API (pay-per-use)  
 ANTHROPIC_API_KEY=your-key-here
 ```
 
@@ -112,23 +115,35 @@ Open http://localhost:5173 — the Vite dev server proxies API calls to the back
 
 ## 🧠 AI Integration
 
-FleetPulse supports **two AI modes** for enhanced fleet intelligence:
+FleetPulse supports **three AI modes** for enhanced fleet intelligence:
 
-### 1. Claude AI Mode (Recommended)
-- **Real AI-powered responses** using Anthropic's Claude model
-- Context-aware fleet analysis with real-time data integration
-- Streaming responses for better user experience
-- Advanced insights and recommendations
+### 1. OpenRouter (Recommended 🌟)
+- **Use your Claude Max ($100/mo) or Pro ($20/mo) subscription** 
+- Connect existing subscription via OpenRouter for free tier usage
+- Same Claude model quality without additional per-use charges
+- Free tier credits available even without subscription
+
+**Setup:**
+1. Visit [openrouter.ai](https://openrouter.ai) and create an account
+2. Generate an API key in your dashboard
+3. Optionally: Connect your Claude subscription for enhanced usage
+4. Configure the key in FleetPulse settings
+
+### 2. Anthropic Direct API
+- **Pay-per-use** pricing (~$3 per million tokens)
+- Direct access to Anthropic's API
+- Most reliable option with full feature set
+- Best for high-volume usage with predictable costs
 
 **Setup:**
 1. Get an API key from [console.anthropic.com](https://console.anthropic.com)
-2. Either set `ANTHROPIC_API_KEY` in your `backend/.env` file, OR
-3. Use the settings panel in the chat interface to configure the key at runtime
+2. Add credit to your account for billing
+3. Configure the key in FleetPulse settings
 
-### 2. Demo Mode (Pattern Matching)
+### 3. Demo Mode
 - **No API key required** — works out of the box
 - Uses intelligent pattern matching for common fleet queries
-- Provides useful responses for standard fleet management questions
+- Great for testing and basic fleet analysis
 - Automatically activated when no API key is configured
 
 **Features in both modes:**
