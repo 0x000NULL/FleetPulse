@@ -53,3 +53,11 @@ export function useAlerts() {
 export function useLocations() {
   return useFetch<LocationStats[]>(`${API}/dashboard/locations`)
 }
+
+export function useMonitorAlerts() {
+  return useFetch<Alert[]>(`${API}/monitor/alerts`, 15000)
+}
+
+export function useMonitorStatus() {
+  return useFetch<any>(`${API}/monitor/status`, 15000)
+}
