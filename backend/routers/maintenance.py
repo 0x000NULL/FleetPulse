@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 
 from geotab_client import GeotabClient
+from _cache import get_cached, set_cached
 from models import (
     MaintenancePrediction, 
     VehicleMaintenanceDetail, 
@@ -78,6 +79,9 @@ def get_urgency_level(due_date: datetime, has_fault_codes: bool = False) -> Urge
 @router.get("/predictions", response_model=List[MaintenancePrediction])
 async def get_maintenance_predictions():
     """Get maintenance predictions for all vehicles."""
+    cached = get_cached("maintenance_predictions", ttl=300)
+    if cached is not None:
+        return cached
     try:
         client = GeotabClient.get()
         devices = client.get_devices()
@@ -157,6 +161,7 @@ async def get_maintenance_predictions():
             )
             predictions.append(prediction)
         
+        set_cached("maintenance_predictions", predictions)
         return predictions
         
     except Exception as e:
@@ -273,6 +278,9 @@ async def get_vehicle_maintenance_detail(vehicle_id: str):
 @router.get("/costs", response_model=MaintenanceCost)
 async def get_maintenance_costs():
     """Get estimated maintenance costs for the next 3 months."""
+    cached = get_cached("maintenance_costs", ttl=300)
+    if cached is not None:
+        return cached
     try:
         client = GeotabClient.get()
         devices = client.get_devices()
@@ -323,6 +331,9 @@ async def get_maintenance_costs():
 @router.get("/urgent", response_model=List[UrgentMaintenanceAlert])
 async def get_urgent_maintenance():
     """Get vehicles with overdue maintenance or active fault codes."""
+    cached = get_cached("maintenance_urgent", ttl=300)
+    if cached is not None:
+        return cached
     try:
         client = GeotabClient.get()
         devices = client.get_devices()
