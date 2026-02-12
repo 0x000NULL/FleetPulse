@@ -656,6 +656,141 @@ async def process_legacy_query(chat_message: ChatMessage):
     return await process_chat_query(chat_message)
 
 
+@router.post("/chat/stream")
+async def process_chat_stream(chat_message: ChatMessage):
+    """Process chat query with streaming response (Server-Sent Events)."""
+    
+    async def stream_response():
+        if not _is_ai_enabled():
+            # For non-AI responses, just yield the complete response
+            response = await _process_fallback_query(chat_message.message)
+            yield f"data: {json.dumps(response.dict())}\n\n"
+            return
+        
+        client = _get_claude_client()
+        if not client:
+            yield f"data: {json.dumps({'error': 'AI service not available'})}\n\n"
+            return
+        
+        try:
+            # Fetch fleet context
+            fleet_context = await _fetch_fleet_context()
+            
+            # Build conversation history
+            messages = []
+            for msg in chat_message.conversation_history[-10:]:
+                role = "user" if msg.get("type") == "user" else "assistant"
+                messages.append({"role": role, "content": msg.get("content", "")})
+            
+            current_message = f"""CURRENT FLEET DATA:
+{fleet_context}
+
+USER QUESTION: {chat_message.message}
+
+Please analyze this question in the context of the current fleet data and provide insights, recommendations, and any relevant visualizations."""
+
+            messages.append({"role": "user", "content": current_message})
+            
+            # Stream from Claude
+            accumulated_text = ""
+            with client.messages.stream(
+                model="claude-sonnet-4-20250514",
+                max_tokens=2000,
+                system=CLAUDE_SYSTEM_PROMPT,
+                messages=messages
+            ) as stream:
+                for chunk in stream:
+                    if chunk.type == "content_block_delta":
+                        if chunk.delta.type == "text_delta":
+                            text_chunk = chunk.delta.text
+                            accumulated_text += text_chunk
+                            
+                            # Stream the text chunk
+                            yield f"data: {json.dumps({'chunk': text_chunk, 'type': 'text'})}\n\n"
+            
+            # After streaming is complete, analyze for charts and insights
+            chart_type = None
+            data = None
+            insights = []
+            
+            # Analyze accumulated text for visualizations
+            if "bar chart" in accumulated_text.lower():
+                chart_type = "bar"
+            elif "line chart" in accumulated_text.lower():
+                chart_type = "line"  
+            elif "pie chart" in accumulated_text.lower():
+                chart_type = "pie"
+            
+            # Extract insights
+            lines = accumulated_text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if (line.startswith('•') or line.startswith('-') or 
+                    line.startswith('*') or re.match(r'^\d+\.', line)):
+                    insights.append(line.lstrip('•-* ').lstrip('0123456789. '))
+            
+            # Provide relevant data for charts
+            if chart_type and "safety" in chat_message.message.lower():
+                data = [{"location": loc["location"], "score": loc["score"], "color": "#10b981" if loc["score"] >= 90 else "#f59e0b" if loc["score"] >= 85 else "#ef4444"} for loc in FLEET_DATA["safety_scores"]]
+            elif chart_type and "idle" in chat_message.message.lower():
+                data = [{"location": loc["location"], "minutes": loc["avg_idle_minutes"], "color": "#ef4444" if loc["avg_idle_minutes"] > 120 else "#f59e0b" if loc["avg_idle_minutes"] > 60 else "#10b981"} for loc in FLEET_DATA["idle_analysis"]]
+            elif chart_type and "fuel" in chat_message.message.lower():
+                data = [{"day": day["date"][-5:], "efficiency": day["efficiency"]} for day in FLEET_DATA["fuel_efficiency"]]
+            
+            # Send final metadata
+            final_data = {
+                'type': 'complete',
+                'chart_type': chart_type,
+                'data': data,
+                'insights': insights[:3],
+                'model': 'claude-sonnet-4-20250514',
+                'is_ai_powered': True
+            }
+            yield f"data: {json.dumps(final_data)}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'error': f'Streaming error: {str(e)}'})}\n\n"
+    
+    return StreamingResponse(
+        stream_response(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream",
+        }
+    )
+
+
+@router.post("/config")
+async def set_api_key(request: ApiKeyRequest):
+    """Set Anthropic API key in memory (not persisted to disk)."""
+    try:
+        success = _set_api_key(request.api_key)
+        if success:
+            return {"message": "API key configured successfully", "ai_enabled": True}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid API key or failed to connect to Anthropic"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error setting API key: {str(e)}"
+        )
+
+
+@router.get("/config", response_model=ConfigResponse)
+async def get_ai_config():
+    """Get current AI configuration status (never returns the API key)."""
+    return ConfigResponse(
+        ai_enabled=_is_ai_enabled(),
+        model="claude-sonnet-4-20250514" if _is_ai_enabled() else None,
+        provider="anthropic"
+    )
+
+
 @router.get("/insights", response_model=List[FleetInsight])
 async def get_ai_insights():
     """Get current AI-generated fleet insights and recommendations."""
