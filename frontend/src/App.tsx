@@ -260,7 +260,7 @@ export default function App() {
         )}
 
         {activeTab === 'replay' && (
-          <RouteReplay />
+          <RouteReplay onClose={() => setActiveTab('dashboard')} />
         )}
       </motion.main>
 
