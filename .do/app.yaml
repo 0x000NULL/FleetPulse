@@ -26,6 +26,7 @@ services:
         value: my.geotab.com
     routes:
       - path: /api
+        preserve_path_prefix: true
 static_sites:
   - name: frontend
     github:
