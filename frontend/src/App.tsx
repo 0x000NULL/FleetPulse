@@ -15,6 +15,8 @@ import MaintenancePredictor from './components/MaintenancePredictor'
 import ThemeToggle from './components/ThemeToggle'
 import DriverCoaching from './components/DriverCoaching'
 import RouteReplay from './components/RouteReplay'
+import InstallPrompt from './components/InstallPrompt'
+import OfflineIndicator from './components/OfflineIndicator'
 import { useFleetOverview, useVehicles, useSafetyScores, useLeaderboard, useAlerts, useLocations, useMonitorAlerts, useMonitorStatus } from './hooks/useGeotab'
 
 export default function App() {
@@ -261,6 +263,10 @@ export default function App() {
           <RouteReplay />
         )}
       </motion.main>
+
+      {/* PWA Components */}
+      <InstallPrompt />
+      <OfflineIndicator />
 
       {/* AI Chat Floating Action Button */}
       <motion.button
