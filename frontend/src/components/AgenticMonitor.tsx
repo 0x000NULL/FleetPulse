@@ -133,9 +133,9 @@ export default function AgenticMonitor({ alerts, status, loading, onTriggerCheck
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-gray-900 via-purple-900/20 to-blue-900/20 rounded-xl shadow-lg overflow-hidden border border-purple-500/30 backdrop-blur-sm"
+      className="bg-gradient-to-br from-gray-900 via-purple-900/20 to-blue-900/20 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 light:from-white light:via-purple-50 light:to-blue-50 rounded-xl shadow-lg overflow-hidden border border-purple-500/30 dark:border-purple-500/30 light:border-purple-200 backdrop-blur-sm"
     >
-      <div className="px-4 py-3 border-b border-gray-800/50 flex items-center justify-between bg-gradient-to-r from-purple-900/40 to-blue-900/40">
+      <div className="px-4 py-3 border-b border-gray-800/50 dark:border-gray-800/50 light:border-purple-200/50 flex items-center justify-between bg-gradient-to-r from-purple-900/40 to-blue-900/40 dark:from-purple-900/40 dark:to-blue-900/40 light:from-purple-100/40 light:to-blue-100/40">
         <div className="flex items-center gap-3">
           <motion.div
             animate={{ rotate: [0, 360] }}
@@ -145,8 +145,8 @@ export default function AgenticMonitor({ alerts, status, loading, onTriggerCheck
             <Brain className="w-5 h-5 text-white" />
           </motion.div>
           <div>
-            <h2 className="font-semibold text-white">Agentic Intelligence Hub</h2>
-            <p className="text-xs text-gray-400">Real-time fleet analysis & recommendations</p>
+            <h2 className="font-semibold text-white dark:text-white light:text-gray-900">Agentic Intelligence Hub</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-400 light:text-gray-600">Real-time fleet analysis & recommendations</p>
           </div>
           {status?.running && (
             <motion.span
