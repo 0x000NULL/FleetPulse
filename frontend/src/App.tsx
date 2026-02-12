@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, Zap, BarChart3, Wrench, GraduationCap } from 'lucide-react'
+import { MessageCircle, Zap, BarChart3, Wrench, GraduationCap, Route } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import FleetAnalytics from './components/FleetAnalytics'
 import FleetChat from './components/FleetChat'
@@ -14,11 +14,12 @@ import AgenticMonitor from './components/AgenticMonitor'
 import MaintenancePredictor from './components/MaintenancePredictor'
 import ThemeToggle from './components/ThemeToggle'
 import DriverCoaching from './components/DriverCoaching'
+import RouteReplay from './components/RouteReplay'
 import { useFleetOverview, useVehicles, useSafetyScores, useLeaderboard, useAlerts, useLocations, useMonitorAlerts, useMonitorStatus } from './hooks/useGeotab'
 
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'coaching'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'coaching' | 'replay'>('dashboard')
   
   const overview = useFleetOverview()
   const vehicles = useVehicles()
@@ -107,6 +108,17 @@ export default function App() {
             >
               <GraduationCap className="w-4 h-4" />
               <span className="hidden sm:inline">Coaching</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('replay')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'replay'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <Route className="w-4 h-4" />
+              <span className="hidden sm:inline">Route Replay</span>
             </button>
           </nav>
           
@@ -243,6 +255,10 @@ export default function App() {
 
         {activeTab === 'coaching' && (
           <DriverCoaching />
+        )}
+
+        {activeTab === 'replay' && (
+          <RouteReplay />
         )}
       </motion.main>
 

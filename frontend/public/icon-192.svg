@@ -1,0 +1,18 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#030712" rx="24"/>
+  <!-- Dashboard base -->
+  <rect x="32" y="80" width="128" height="80" fill="#1f2937" rx="8"/>
+  <!-- Car body -->
+  <rect x="56" y="48" width="80" height="32" fill="#374151" rx="16"/>
+  <!-- Wheels -->
+  <circle cx="72" cy="144" r="12" fill="#6b7280"/>
+  <circle cx="120" cy="144" r="12" fill="#6b7280"/>
+  <!-- Dashboard elements -->
+  <circle cx="80" cy="120" r="8" fill="#3b82f6"/>
+  <circle cx="112" cy="120" r="8" fill="#10b981"/>
+  <!-- Speed indicator -->
+  <path d="M96 100 L104 108 L96 116 L88 108 Z" fill="#f59e0b"/>
+  <!-- Fleet pulse effect -->
+  <circle cx="96" cy="108" r="20" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.5"/>
+  <circle cx="96" cy="108" r="32" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.3"/>
+</svg>
