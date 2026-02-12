@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fleetpulse": {
+      "command": "python",
+      "args": ["mcp-server/server.py"],
+      "cwd": "/home/exedev/FleetPulse",
+      "env": {
+        "FLEETPULSE_API_URL": "http://localhost:8080/api"
+      }
+    }
+  }
+}

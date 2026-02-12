@@ -90,6 +90,74 @@ npm run dev
 
 Open http://localhost:5173 — the Vite dev server proxies API calls to the backend on port 8080.
 
+## 🤖 Claude Desktop Integration (MCP)
+
+FleetPulse includes a **Model Context Protocol (MCP) server** that allows Claude Desktop and other MCP clients to interact with fleet data conversationally.
+
+### Features
+- **Natural Language Queries**: "Which location has the best safety scores?" or "Show me vehicles with high idle time"
+- **Rich Formatted Responses**: Markdown tables, insights, and contextual information
+- **Real-time Data**: Direct access to live fleet information through the FastAPI backend
+- **Fleet Summary Resource**: Claude can read current fleet status for context
+
+### Available MCP Tools
+| Tool | Description |
+|------|-------------|
+| `get_fleet_overview` | Vehicle counts, active/idle status, trip metrics |
+| `get_vehicles` | List all vehicles with positions, status, speed, driver |
+| `get_vehicle_details(vehicle_id)` | Deep dive into specific vehicle |
+| `get_safety_scores` | All drivers' safety scores with violation breakdowns |
+| `get_alerts(severity?, limit?)` | Recent alerts with filtering options |
+| `get_location_stats(location?)` | Per-location metrics and statistics |
+| `get_leaderboard` | Gamification rankings and achievements |
+| `query_fleet(question)` | Natural language query processing with AI insights |
+| `get_recommendations` | AI-generated cost-saving and safety recommendations |
+
+### Setup Instructions
+
+1. **Start FleetPulse backend** (must be running on localhost:8080):
+   ```bash
+   cd backend && uvicorn app:app --port 8080
+   ```
+
+2. **Test the MCP server**:
+   ```bash
+   cd mcp-server
+   source venv/bin/activate
+   python test_server.py
+   ```
+
+3. **Configure Claude Desktop**:
+   
+   **Linux**: `~/.config/claude-desktop/config.json`
+   
+   **macOS**: `~/Library/Application Support/Claude/config.json`
+   
+   ```json
+   {
+     "mcpServers": {
+       "fleetpulse": {
+         "command": "python",
+         "args": ["mcp-server/server.py"],
+         "cwd": "/path/to/FleetPulse",
+         "env": {
+           "FLEETPULSE_API_URL": "http://localhost:8080/api"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Restart Claude Desktop** and look for "FleetPulse" in the MCP servers list
+
+### Example Queries
+- "Show me the current fleet status"
+- "Which vehicles are currently active?"
+- "What are the safety scores for all drivers?"
+- "Give me recommendations to improve efficiency"
+- "Show alerts from the last hour"
+- "Which location has the most idle time?"
+
 ## 📡 API Endpoints
 
 | Endpoint | Description |
@@ -107,6 +175,8 @@ Open http://localhost:5173 — the Vite dev server proxies API calls to the back
 | `GET /api/monitor/alerts` | Agentic monitor alerts |
 | `GET /api/monitor/status` | Monitor status & patterns |
 | `POST /api/monitor/check` | Trigger manual check |
+| `POST /api/ai/query` | Natural language fleet queries |
+| `GET /api/ai/insights` | AI-generated recommendations |
 
 ## 🛠️ Tech Stack
 
@@ -129,7 +199,8 @@ FleetPulse/
 │   │   ├── safety.py
 │   │   ├── gamification.py
 │   │   ├── alerts.py
-│   │   └── monitor.py            # Agentic monitor endpoints
+│   │   ├── monitor.py            # Agentic monitor endpoints
+│   │   └── ai_chat.py            # Natural language query processing
 │   └── services/                 # Business logic
 │       ├── fleet_service.py      # Vehicle tracking, fleet overview
 │       ├── safety_service.py     # Safety scoring, trend analysis
@@ -151,6 +222,11 @@ FleetPulse/
 │   │       ├── LocationCard.tsx
 │   │       └── AgenticMonitor.tsx # 🤖 Monitor UI
 │   └── vite.config.ts            # Proxy → backend:8080
+├── mcp-server/                   # 🤖 Model Context Protocol server
+│   ├── server.py                 # MCP server for Claude Desktop integration
+│   ├── test_server.py            # Test suite for MCP functionality
+│   ├── claude_desktop_config.json # Claude Desktop configuration example
+│   └── venv/                     # Python virtual environment
 ├── scripts/                      # Setup scripts (zones, drivers)
 ├── requirements.txt
 └── README.md
