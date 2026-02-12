@@ -240,6 +240,10 @@ export default function App() {
         {activeTab === 'maintenance' && (
           <MaintenancePredictor />
         )}
+
+        {activeTab === 'coaching' && (
+          <DriverCoaching />
+        )}
       </motion.main>
 
       {/* AI Chat Floating Action Button */}
