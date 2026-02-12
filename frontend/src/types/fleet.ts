@@ -92,3 +92,71 @@ export interface LocationRanking {
   total_points: number
   rank: number
 }
+
+// Driver Coaching Types
+export type CoachingStatus = 'needs_attention' | 'on_track' | 'improved'
+export type CoachingCategory = 'harsh_braking' | 'harsh_acceleration' | 'speeding' | 'cornering' | 'seatbelt'
+
+export interface CoachingScores {
+  harsh_braking: number
+  harsh_acceleration: number
+  speeding: number
+  cornering: number
+  seatbelt: number
+}
+
+export interface CoachingRecommendation {
+  category: CoachingCategory
+  priority: number
+  message: string
+  fuel_impact_pct: number
+}
+
+export interface CoachingTrend {
+  current_week: number
+  last_week: number
+  four_weeks_avg: number
+  direction: TrendDirection
+}
+
+export interface DriverCoachingProfile {
+  driver_id: string
+  driver_name: string
+  status: CoachingStatus
+  scores: CoachingScores
+  overall_score: number
+  recommendations: CoachingRecommendation[]
+  trend: CoachingTrend
+  events_this_week: number
+  fuel_waste_pct: number
+  acknowledged: boolean
+}
+
+export interface CoachingEventDetail {
+  timestamp: string
+  category: CoachingCategory
+  location: string
+  severity: AlertSeverity
+  description: string
+}
+
+export interface DriverCoachingDetail {
+  driver_id: string
+  driver_name: string
+  scores: CoachingScores
+  trend: CoachingTrend
+  recommendations: CoachingRecommendation[]
+  recent_events: CoachingEventDetail[]
+  weekly_stats: Record<string, number>
+}
+
+export interface FleetCoachingSummary {
+  total_drivers: number
+  needs_attention: number
+  on_track: number
+  improved: number
+  average_score: number
+  best_improved: string[]
+  worst_performers: string[]
+  fleet_fuel_savings_potential: number
+}

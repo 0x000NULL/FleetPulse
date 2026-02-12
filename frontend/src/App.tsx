@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, Zap } from 'lucide-react'
+import { MessageCircle, Zap, BarChart3, Wrench, GraduationCap } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import FleetAnalytics from './components/FleetAnalytics'
 import FleetChat from './components/FleetChat'
@@ -11,10 +11,14 @@ import Leaderboard from './components/Leaderboard'
 import AlertFeed from './components/AlertFeed'
 import LocationCard from './components/LocationCard'
 import AgenticMonitor from './components/AgenticMonitor'
+import MaintenancePredictor from './components/MaintenancePredictor'
+import ThemeToggle from './components/ThemeToggle'
+import DriverCoaching from './components/DriverCoaching'
 import { useFleetOverview, useVehicles, useSafetyScores, useLeaderboard, useAlerts, useLocations, useMonitorAlerts, useMonitorStatus } from './hooks/useGeotab'
 
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'coaching'>('dashboard')
   
   const overview = useFleetOverview()
   const vehicles = useVehicles()
@@ -45,10 +49,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 light:from-gray-50 light:via-white light:to-gray-50 text-white dark:text-white light:text-gray-900">
       {/* Header */}
       <motion.header 
-        className="border-b border-gray-800/50 px-4 sm:px-6 py-4 flex items-center justify-between backdrop-blur-xl bg-gray-950/80"
+        className="border-b border-gray-800/50 dark:border-gray-800/50 light:border-gray-200/50 px-4 sm:px-6 py-4 flex items-center justify-between backdrop-blur-xl bg-gray-950/80 dark:bg-gray-950/80 light:bg-white/80"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -65,16 +69,56 @@ export default function App() {
             <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
               FleetPulse
             </h1>
-            <p className="text-xs text-gray-500 hidden sm:block">Budget Rent a Car · Las Vegas · 8 Locations</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 light:text-gray-600 hidden sm:block">Budget Rent a Car · Las Vegas · 8 Locations</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <motion.span 
-            className="inline-block w-2 h-2 rounded-full bg-emerald-400"
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <span className="hidden sm:inline">Live</span>
+        <div className="flex items-center gap-4">
+          {/* Navigation Tabs */}
+          <nav className="flex gap-1 bg-gray-800/50 dark:bg-gray-800/50 light:bg-gray-200/50 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'dashboard'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('maintenance')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'maintenance'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <Wrench className="w-4 h-4" />
+              <span className="hidden sm:inline">Maintenance</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('coaching')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'coaching'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span className="hidden sm:inline">Coaching</span>
+            </button>
+          </nav>
+          
+          <ThemeToggle />
+          <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-400 light:text-gray-600">
+            <motion.span 
+              className="inline-block w-2 h-2 rounded-full bg-emerald-400"
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <span className="hidden sm:inline">Live</span>
+          </div>
         </div>
       </motion.header>
 
@@ -86,6 +130,8 @@ export default function App() {
         exit="out"
         transition={pageTransition}
       >
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
         {/* KPI Cards */}
         <section>
           <Dashboard overview={overview.data} loading={overview.loading} />
@@ -188,6 +234,12 @@ export default function App() {
             </div>
           </motion.div>
         </section>
+          </div>
+        )}
+
+        {activeTab === 'maintenance' && (
+          <MaintenancePredictor />
+        )}
       </motion.main>
 
       {/* AI Chat Floating Action Button */}
