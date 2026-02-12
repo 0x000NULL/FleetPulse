@@ -145,3 +145,159 @@ class AlertRule(BaseModel):
     threshold: Optional[float] = None
     alert_type: str
     severity: AlertSeverity = AlertSeverity.MEDIUM
+
+
+# ── Maintenance ────────────────────────────────────────────────
+class MaintenanceType(str, Enum):
+    OIL_CHANGE = "oil_change"
+    BRAKE_SERVICE = "brake_service"
+    TIRE_ROTATION = "tire_rotation"
+    TRANSMISSION_SERVICE = "transmission_service"
+    TIRES_REPLACEMENT = "tires_replacement"
+
+
+class UrgencyLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class UpcomingService(BaseModel):
+    service_type: str
+    due_date: datetime
+    is_overdue: bool = False
+    urgency: UrgencyLevel
+    estimated_cost: float
+
+
+class MaintenancePrediction(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    current_odometer: float
+    engine_hours: float
+    upcoming_services: list[UpcomingService]
+    has_active_fault_codes: bool = False
+    active_fault_count: int = 0
+
+
+class MaintenanceHistoryItem(BaseModel):
+    service_type: str
+    date: datetime
+    odometer_at_service: float
+    cost: float
+    notes: Optional[str] = None
+
+
+class FaultCode(BaseModel):
+    code: str
+    description: str
+    timestamp: datetime
+    severity: str
+
+
+class VehicleMaintenanceDetail(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    current_odometer: float
+    engine_hours: float
+    upcoming_services: list[UpcomingService]
+    maintenance_history: list[MaintenanceHistoryItem]
+    active_fault_codes: list[FaultCode]
+    last_service_date: Optional[datetime] = None
+
+
+class MaintenanceCost(BaseModel):
+    total_cost_next_month: float
+    total_cost_next_3_months: float
+    cost_breakdown: dict[str, dict[str, float]]  # service_type -> {count, total_cost}
+    average_monthly_cost: float
+
+
+class UrgentMaintenanceAlert(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    urgency: UrgencyLevel
+    active_fault_codes: list[dict[str, str]]  # {code, description}
+    overdue_services: list[dict]  # service details
+    urgent_services: list[dict]  # service details
+    estimated_repair_cost: float
+
+
+# ── Driver Coaching ────────────────────────────────────────────
+class CoachingStatus(str, Enum):
+    NEEDS_ATTENTION = "needs_attention"
+    ON_TRACK = "on_track"
+    IMPROVED = "improved"
+
+
+class CoachingCategory(str, Enum):
+    HARSH_BRAKING = "harsh_braking"
+    HARSH_ACCELERATION = "harsh_acceleration"
+    SPEEDING = "speeding"
+    CORNERING = "cornering"
+    SEATBELT = "seatbelt"
+
+
+class CoachingScores(BaseModel):
+    harsh_braking: float = Field(ge=0, le=100, default=100)
+    harsh_acceleration: float = Field(ge=0, le=100, default=100)
+    speeding: float = Field(ge=0, le=100, default=100)
+    cornering: float = Field(ge=0, le=100, default=100)
+    seatbelt: float = Field(ge=0, le=100, default=100)
+
+
+class CoachingRecommendation(BaseModel):
+    category: CoachingCategory
+    priority: int = Field(ge=1, le=5, description="1=highest, 5=lowest")
+    message: str
+    fuel_impact_pct: float = Field(ge=0, le=30, description="Estimated fuel cost increase %")
+
+
+class CoachingTrend(BaseModel):
+    current_week: float
+    last_week: float
+    four_weeks_avg: float
+    direction: TrendDirection
+
+
+class DriverCoachingProfile(BaseModel):
+    driver_id: str
+    driver_name: str
+    status: CoachingStatus
+    scores: CoachingScores
+    overall_score: float = Field(ge=0, le=100)
+    recommendations: list[CoachingRecommendation] = Field(default_factory=list)
+    trend: CoachingTrend
+    events_this_week: int = 0
+    fuel_waste_pct: float = Field(ge=0, le=30, description="Estimated fuel waste due to poor driving %")
+    acknowledged: bool = False
+
+
+class CoachingEventDetail(BaseModel):
+    timestamp: datetime
+    category: CoachingCategory
+    location: str
+    severity: AlertSeverity
+    description: str
+
+
+class DriverCoachingDetail(BaseModel):
+    driver_id: str
+    driver_name: str
+    scores: CoachingScores
+    trend: CoachingTrend
+    recommendations: list[CoachingRecommendation] = Field(default_factory=list)
+    recent_events: list[CoachingEventDetail] = Field(default_factory=list)
+    weekly_stats: dict[str, int] = Field(default_factory=dict, description="Event counts by week")
+
+
+class FleetCoachingSummary(BaseModel):
+    total_drivers: int
+    needs_attention: int
+    on_track: int
+    improved: int
+    average_score: float = Field(ge=0, le=100)
+    best_improved: list[str] = Field(default_factory=list, description="Driver names")
+    worst_performers: list[str] = Field(default_factory=list, description="Driver names")
+    fleet_fuel_savings_potential: float = Field(ge=0, le=30, description="Potential fuel savings %")

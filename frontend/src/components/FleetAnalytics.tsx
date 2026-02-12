@@ -100,10 +100,10 @@ export default function FleetAnalytics({ loading = false }: Props) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+          <div key={i} className="bg-gray-900 dark:bg-gray-900 light:bg-white rounded-xl p-6 border border-gray-800 dark:border-gray-800 light:border-gray-200">
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-700 rounded w-1/3 mb-4" />
-              <div className="h-48 bg-gray-700 rounded" />
+              <div className="h-4 bg-gray-700 dark:bg-gray-700 light:bg-gray-200 rounded w-1/3 mb-4" />
+              <div className="h-48 bg-gray-700 dark:bg-gray-700 light:bg-gray-200 rounded" />
             </div>
           </div>
         ))}
@@ -114,7 +114,7 @@ export default function FleetAnalytics({ loading = false }: Props) {
   return (
     <div className="space-y-6">
       <motion.h2 
-        className="text-xl font-semibold text-white mb-4 flex items-center gap-2"
+        className="text-xl font-semibold text-white dark:text-white light:text-gray-900 mb-4 flex items-center gap-2"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { FleetOverview, Vehicle, VehicleSafetyScore, DriverScore, Alert, LocationStats } from '../types/fleet'
+import type { FleetOverview, Vehicle, VehicleSafetyScore, DriverScore, Alert, LocationStats, DriverCoachingProfile, DriverCoachingDetail, FleetCoachingSummary } from '../types/fleet'
 
 const API = '/api'
 
@@ -60,4 +60,53 @@ export function useMonitorAlerts() {
 
 export function useMonitorStatus() {
   return useFetch<any>(`${API}/monitor/status`, 15000)
+}
+
+// Driver Coaching hooks
+export function useCoachingDrivers() {
+  return useFetch<DriverCoachingProfile[]>(`${API}/coaching/drivers`, 60000) // Update every minute
+}
+
+export function useCoachingDriver(driverId: string) {
+  return useFetch<DriverCoachingDetail>(`${API}/coaching/driver/${driverId}`, 30000)
+}
+
+export function useCoachingReports() {
+  return useFetch<FleetCoachingSummary>(`${API}/coaching/reports`, 60000)
+}
+
+// Function to acknowledge coaching for a driver
+export async function acknowledgeCoaching(driverId: string) {
+  try {
+    const response = await fetch(`${API}/coaching/acknowledge/${driverId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    if (!response.ok) {
+      throw new Error(`${response.status}`)
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('Failed to acknowledge coaching:', error)
+    throw error
+  }
+}
+
+// Maintenance hooks
+export function useMaintenancePredictions() {
+  return useFetch<any[]>(`${API}/maintenance/predictions`)
+}
+
+export function useMaintenanceCosts() {
+  return useFetch<any>(`${API}/maintenance/costs`)
+}
+
+export function useUrgentMaintenance() {
+  return useFetch<any[]>(`${API}/maintenance/urgent`)
+}
+
+export function useVehicleMaintenance(vehicleId: string) {
+  return useFetch<any>(`${API}/maintenance/vehicle/${vehicleId}`)
 }

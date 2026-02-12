@@ -21,8 +21,8 @@ const severityBadge: Record<string, string> = {
 
 export default function AlertFeed({ alerts, loading }: Props) {
   return (
-    <div className="bg-gray-900 rounded-xl shadow-lg overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+    <div className="bg-gray-900 dark:bg-gray-900 light:bg-white rounded-xl shadow-lg overflow-hidden flex flex-col border border-gray-800/50 dark:border-gray-800/50 light:border-gray-200">
+      <div className="px-4 py-3 border-b border-gray-800 dark:border-gray-800 light:border-gray-200 flex items-center justify-between">
         <h2 className="font-semibold">🚨 Alert Feed</h2>
         {alerts && (
           <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
@@ -31,7 +31,7 @@ export default function AlertFeed({ alerts, loading }: Props) {
         )}
       </div>
       <div className="flex-1 overflow-y-auto max-h-[370px] p-2 space-y-2">
-        {loading && <p className="text-gray-500 text-center py-8">Loading…</p>}
+        {loading && <p className="text-gray-500 dark:text-gray-500 light:text-gray-600 text-center py-8">Loading…</p>}
         {alerts?.slice(0, 30).map(a => (
           <div
             key={a.id}
@@ -41,7 +41,7 @@ export default function AlertFeed({ alerts, loading }: Props) {
               <span className={`text-xs px-1.5 py-0.5 rounded ${severityBadge[a.severity]}`}>
                 {a.severity}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-500 light:text-gray-600">
                 {new Date(a.timestamp).toLocaleTimeString()}
               </span>
             </div>

@@ -133,7 +133,7 @@ export default function Dashboard({ overview, loading }: Props) {
             scale: 1.02,
             transition: { type: "spring" as const, stiffness: 400, damping: 25 }
           }}
-          className={`relative bg-gradient-to-br ${c.color} rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-white/10 backdrop-blur-sm group overflow-hidden`}
+          className={`relative bg-gradient-to-br ${c.color} rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-white/10 dark:border-white/10 light:border-black/10 backdrop-blur-sm group overflow-hidden`}
         >
           {/* Background gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

@@ -89,15 +89,15 @@ export default function VehicleList({ vehicles, loading }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-800"
+      className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-900 dark:to-gray-800 light:from-white light:to-gray-50 rounded-xl shadow-lg overflow-hidden border border-gray-800 dark:border-gray-800 light:border-gray-200"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-800/50 bg-gradient-to-r from-gray-800 to-gray-700">
+      <div className="px-4 py-3 border-b border-gray-800/50 dark:border-gray-800/50 light:border-gray-200/50 bg-gradient-to-r from-gray-800 to-gray-700 dark:from-gray-800 dark:to-gray-700 light:from-gray-50 light:to-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="font-semibold text-white flex items-center gap-2">
+            <h2 className="font-semibold text-white dark:text-white light:text-gray-900 flex items-center gap-2">
               🚗 Fleet Vehicles
-              <span className="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300">
+              <span className="text-xs bg-gray-700 dark:bg-gray-700 light:bg-gray-200 px-2 py-1 rounded-full text-gray-300 dark:text-gray-300 light:text-gray-700">
                 {filteredAndSortedVehicles.length} of {vehicles?.length || 0}
               </span>
             </h2>
@@ -108,7 +108,7 @@ export default function VehicleList({ vehicles, loading }: Props) {
             {Object.entries(statusCounts).map(([status, count]) => (
               <div key={status} className="flex items-center gap-1">
                 {statusIcon[status]}
-                <span className="text-xs text-gray-400">{count}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-400 light:text-gray-600">{count}</span>
               </div>
             ))}
           </div>
@@ -118,13 +118,13 @@ export default function VehicleList({ vehicles, loading }: Props) {
         <div className="mt-3 flex flex-col sm:flex-row gap-3">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400 light:text-gray-500" />
             <input
               type="text"
               placeholder="Search vehicles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full pl-10 pr-3 py-2 bg-gray-800 dark:bg-gray-800 light:bg-white border border-gray-700 dark:border-gray-700 light:border-gray-300 rounded-lg text-sm text-white dark:text-white light:text-gray-900 focus:outline-none focus:border-blue-500 transition-colors placeholder-gray-400 dark:placeholder-gray-400 light:placeholder-gray-500"
             />
           </div>
 
@@ -133,7 +133,7 @@ export default function VehicleList({ vehicles, loading }: Props) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              className="appearance-none bg-gray-800 dark:bg-gray-800 light:bg-white border border-gray-700 dark:border-gray-700 light:border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-white dark:text-white light:text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -149,7 +149,7 @@ export default function VehicleList({ vehicles, loading }: Props) {
             <select
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              className="appearance-none bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              className="appearance-none bg-gray-800 dark:bg-gray-800 light:bg-white border border-gray-700 dark:border-gray-700 light:border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-white dark:text-white light:text-gray-900 focus:outline-none focus:border-blue-500 transition-colors"
             >
               <option value="all">All Locations</option>
               {uniqueLocations.map(location => (
@@ -164,7 +164,7 @@ export default function VehicleList({ vehicles, loading }: Props) {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-800/50 text-gray-400">
+          <thead className="bg-gray-800/50 dark:bg-gray-800/50 light:bg-gray-50 text-gray-400 dark:text-gray-400 light:text-gray-700">
             <tr>
               <th 
                 className="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors select-none"
