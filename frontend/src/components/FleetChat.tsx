@@ -150,31 +150,61 @@ export default function FleetChat({ isOpen, onClose }: Props) {
     }
   }, [isOpen])
 
-  const generateResponse = (userMessage: string): { content: string; data?: any; chart?: string; insight?: string } => {
-    const message = userMessage.toLowerCase()
-    
-    for (const [key, responseData] of Object.entries(responses)) {
-      if (responseData.pattern.test(message)) {
-        return {
-          content: responseData.response,
-          data: responseData.data,
-          chart: responseData.chart,
-          insight: responseData.insight
+  const generateResponse = async (userMessage: string): Promise<{ content: string; data?: any; chart?: string; insights?: string[] }> => {
+    try {
+      // Call the backend AI API
+      const response = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          timestamp: new Date().toISOString()
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response')
+      }
+
+      const data = await response.json()
+      
+      return {
+        content: data.response,
+        data: data.data,
+        chart: data.chart_type,
+        insights: data.insights
+      }
+    } catch (error) {
+      console.error('AI API Error:', error)
+      
+      // Fallback to pattern matching
+      const message = userMessage.toLowerCase()
+      
+      for (const [key, responseData] of Object.entries(responses)) {
+        if (responseData.pattern.test(message)) {
+          return {
+            content: responseData.response,
+            data: responseData.data,
+            chart: responseData.chart,
+            insights: [responseData.insight]
+          }
         }
       }
-    }
 
-    // Default responses for other patterns
-    if (message.includes('hello') || message.includes('hi')) {
-      return { content: "Hello! I'm here to help you analyze your fleet data. What would you like to know?" }
-    }
-    
-    if (message.includes('help')) {
-      return { content: "I can help you with:\n• Safety scores and incident analysis\n• Idle time and fuel efficiency\n• Cost optimization recommendations\n• Fleet utilization patterns\n• Predictive maintenance insights\n\nJust ask me a question in natural language!" }
-    }
+      // Default responses for other patterns
+      if (message.includes('hello') || message.includes('hi')) {
+        return { content: "Hello! I'm here to help you analyze your fleet data. What would you like to know?" }
+      }
+      
+      if (message.includes('help')) {
+        return { content: "I can help you with:\n• Safety scores and incident analysis\n• Idle time and fuel efficiency\n• Cost optimization recommendations\n• Fleet utilization patterns\n• Predictive maintenance insights\n\nJust ask me a question in natural language!" }
+      }
 
-    return { 
-      content: "I understand you're asking about fleet operations. Let me analyze that... Based on current data patterns, I'd recommend checking the analytics dashboard for detailed metrics. You can also try asking about specific topics like safety scores, fuel efficiency, or maintenance predictions." 
+      return { 
+        content: "I understand you're asking about fleet operations. Let me analyze that... Based on current data patterns, I'd recommend checking the analytics dashboard for detailed metrics. You can also try asking about specific topics like safety scores, fuel efficiency, or maintenance predictions." 
+      }
     }
   }
 
@@ -188,13 +218,14 @@ export default function FleetChat({ isOpen, onClose }: Props) {
       timestamp: new Date()
     }
 
+    const messageText = inputValue
     setMessages(prev => [...prev, userMessage])
     setInputValue('')
     setIsTyping(true)
 
-    // Simulate AI thinking time
-    setTimeout(() => {
-      const response = generateResponse(inputValue)
+    try {
+      // Get AI response
+      const response = await generateResponse(messageText)
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -207,22 +238,35 @@ export default function FleetChat({ isOpen, onClose }: Props) {
 
       setMessages(prev => [...prev, assistantMessage])
       
-      // Add insight as a follow-up message if available
-      if (response.insight) {
+      // Add insights as follow-up messages if available
+      if (response.insights && response.insights.length > 0) {
         setTimeout(() => {
-          const insightMessage: Message = {
-            id: (Date.now() + 2).toString(),
-            type: 'assistant',
-            content: `💡 **AI Insight:** ${response.insight}`,
+          const insightMessages = response.insights!.map((insight, index) => ({
+            id: (Date.now() + 2 + index).toString(),
+            type: 'assistant' as const,
+            content: `💡 **AI Insight:** ${insight}`,
             timestamp: new Date()
-          }
-          setMessages(prev => [...prev, insightMessage])
+          }))
+          
+          setMessages(prev => [...prev, ...insightMessages])
           setIsTyping(false)
         }, 1000)
       } else {
         setIsTyping(false)
       }
-    }, 1500)
+    } catch (error) {
+      console.error('Error getting AI response:', error)
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "I'm experiencing some technical difficulties. Please try again or ask about specific topics like safety scores, fuel efficiency, or maintenance predictions.",
+        timestamp: new Date()
+      }
+      
+      setMessages(prev => [...prev, errorMessage])
+      setIsTyping(false)
+    }
   }
 
   const handleQuickQuery = (query: string) => {
