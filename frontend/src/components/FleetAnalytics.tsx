@@ -67,8 +67,8 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-xl">
-        <p className="text-gray-300 text-sm mb-2">{label}</p>
+      <div className="bg-gray-900 dark:bg-gray-900 light:bg-white border border-gray-700 dark:border-gray-700 light:border-gray-300 rounded-lg p-3 shadow-xl">
+        <p className="text-gray-300 dark:text-gray-300 light:text-gray-700 text-sm mb-2">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             {entry.name}: {entry.value}
@@ -128,9 +128,9 @@ export default function FleetAnalytics({ loading = false }: Props) {
           variants={chartVariants}
           initial="hidden"
           animate="visible"
-          className="bg-gray-900/70 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:border-gray-700 transition-colors duration-300"
+          className="bg-gray-900/70 dark:bg-gray-900/70 light:bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-gray-800 dark:border-gray-800 light:border-gray-200 hover:border-gray-700 dark:hover:border-gray-700 light:hover:border-gray-300 transition-colors duration-300"
         >
-          <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-medium text-white dark:text-white light:text-gray-900 mb-4 flex items-center gap-2">
             ⛽ Fuel Efficiency Trends
             <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
               This Week
