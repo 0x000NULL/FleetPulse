@@ -39,8 +39,8 @@ export default function App() {
   }
 
   const pageTransition = {
-    type: 'tween',
-    ease: 'anticipate',
+    type: 'tween' as const,
+    ease: 'anticipate' as const,
     duration: 0.5
   }
 
@@ -198,7 +198,7 @@ export default function App() {
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2, type: "spring", stiffness: 400, damping: 25 }}
+        transition={{ delay: 2, type: "spring" as const, stiffness: 400, damping: 25 }}
       >
         <MessageCircle className="w-6 h-6 text-white" />
         <motion.div
