@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts'
-import { Send, Bot, User, TrendingUp, AlertTriangle, Map, Clock } from 'lucide-react'
+import { Send, Bot, User, Settings, Brain, Sparkles } from 'lucide-react'
+import AISettingsModal from './AISettingsModal'
 
 interface Message {
   id: string
@@ -10,6 +11,9 @@ interface Message {
   timestamp: Date
   data?: any
   chart?: 'bar' | 'line' | 'pie'
+  model?: string
+  isAIPowered?: boolean
+  isStreaming?: boolean
 }
 
 interface Props {
@@ -122,19 +126,22 @@ const quickQueries = [
   { text: "Any maintenance predictions?", icon: "🔧" }
 ]
 
+interface AIConfig {
+  ai_enabled: boolean
+  model?: string
+  provider: string
+}
+
 export default function FleetChat({ isOpen, onClose }: Props) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: "Hello! I'm your fleet intelligence assistant. Ask me anything about vehicle performance, safety scores, cost optimization, or maintenance predictions. I can provide real-time insights and data visualizations.",
-      timestamp: new Date()
-    }
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [aiConfig, setAiConfig] = useState<AIConfig | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const streamingMessageRef = useRef<string>('')
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -150,17 +157,181 @@ export default function FleetChat({ isOpen, onClose }: Props) {
     }
   }, [isOpen])
 
-  const generateResponse = async (userMessage: string): Promise<{ content: string; data?: any; chart?: string; insights?: string[] }> => {
+  // Fetch AI config and initialize welcome message
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      fetchAIConfig()
+      initializeChat()
+    }
+  }, [isOpen])
+
+  const fetchAIConfig = async () => {
     try {
-      // Call the backend AI API
-      const response = await fetch('/api/ai/query', {
+      const response = await fetch('/api/ai/config')
+      if (response.ok) {
+        const config = await response.json()
+        setAiConfig(config)
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI config:', error)
+    }
+  }
+
+  const initializeChat = () => {
+    const welcomeMessage: Message = {
+      id: '1',
+      type: 'assistant',
+      content: "Hello! I'm your fleet intelligence assistant. Ask me anything about vehicle performance, safety scores, cost optimization, or maintenance predictions. I can provide real-time insights and data visualizations.",
+      timestamp: new Date(),
+      model: 'welcome',
+      isAIPowered: false
+    }
+    setMessages([welcomeMessage])
+  }
+
+  const generateStreamingResponse = async (userMessage: string): Promise<void> => {
+    if (!aiConfig?.ai_enabled) {
+      // For non-AI, use regular response
+      return generateNonStreamingResponse(userMessage)
+    }
+
+    const conversationHistory = messages.slice(1, -1).map(msg => ({
+      type: msg.type,
+      content: msg.content
+    }))
+
+    try {
+      const response = await fetch('/api/ai/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: userMessage,
-          timestamp: new Date().toISOString()
+          conversation_history: conversationHistory
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to start streaming')
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      // Create initial streaming message
+      const streamingMessageId = (Date.now() + 1).toString()
+      const streamingMessage: Message = {
+        id: streamingMessageId,
+        type: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+        model: 'claude-sonnet-4-20250514',
+        isAIPowered: true
+      }
+
+      setMessages(prev => [...prev, streamingMessage])
+      setIsStreaming(true)
+      streamingMessageRef.current = ''
+
+      const decoder = new TextDecoder()
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+                
+                if (data.chunk && data.type === 'text') {
+                  // Update streaming content
+                  streamingMessageRef.current += data.chunk
+                  
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === streamingMessageId 
+                      ? { ...msg, content: streamingMessageRef.current }
+                      : msg
+                  ))
+                } else if (data.type === 'complete') {
+                  // Finalize message with chart data and insights
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === streamingMessageId 
+                      ? { 
+                          ...msg, 
+                          content: streamingMessageRef.current,
+                          data: data.data,
+                          chart: data.chart_type,
+                          isStreaming: false,
+                          model: data.model,
+                          isAIPowered: data.is_ai_powered
+                        }
+                      : msg
+                  ))
+                  
+                  // Add insights as separate messages
+                  if (data.insights && data.insights.length > 0) {
+                    setTimeout(() => {
+                      const insightMessages = data.insights.map((insight: string, index: number) => ({
+                        id: (Date.now() + 2 + index).toString(),
+                        type: 'assistant' as const,
+                        content: `💡 **AI Insight:** ${insight}`,
+                        timestamp: new Date(),
+                        model: data.model,
+                        isAIPowered: true
+                      }))
+                      
+                      setMessages(prev => [...prev, ...insightMessages])
+                    }, 1000)
+                  }
+                } else if (data.error) {
+                  throw new Error(data.error)
+                }
+              } catch (parseError) {
+                console.error('Error parsing SSE data:', parseError)
+              }
+            }
+          }
+        }
+      } finally {
+        setIsStreaming(false)
+      }
+
+    } catch (error) {
+      console.error('Streaming error:', error)
+      setIsStreaming(false)
+      
+      // Remove failed streaming message and fall back to regular response
+      setMessages(prev => prev.filter(msg => !msg.isStreaming))
+      return generateNonStreamingResponse(userMessage)
+    }
+  }
+
+  const generateNonStreamingResponse = async (userMessage: string): Promise<void> => {
+    const conversationHistory = messages.slice(1, -1).map(msg => ({
+      type: msg.type,
+      content: msg.content
+    }))
+
+    try {
+      // Use new /api/ai/chat endpoint
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          conversation_history: conversationHistory
         })
       })
 
@@ -170,46 +341,53 @@ export default function FleetChat({ isOpen, onClose }: Props) {
 
       const data = await response.json()
       
-      return {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
         content: data.response,
+        timestamp: new Date(),
         data: data.data,
         chart: data.chart_type,
-        insights: data.insights
+        model: data.model,
+        isAIPowered: data.is_ai_powered
       }
+
+      setMessages(prev => [...prev, assistantMessage])
+      
+      // Add insights as follow-up messages if available
+      if (data.insights && data.insights.length > 0) {
+        setTimeout(() => {
+          const insightMessages = data.insights.map((insight: string, index: number) => ({
+            id: (Date.now() + 2 + index).toString(),
+            type: 'assistant' as const,
+            content: `💡 **AI Insight:** ${insight}`,
+            timestamp: new Date(),
+            model: data.model,
+            isAIPowered: data.is_ai_powered
+          }))
+          
+          setMessages(prev => [...prev, ...insightMessages])
+        }, 1000)
+      }
+
     } catch (error) {
-      console.error('AI API Error:', error)
+      console.error('Error getting AI response:', error)
       
-      // Fallback to pattern matching
-      const message = userMessage.toLowerCase()
-      
-      for (const [key, responseData] of Object.entries(responses)) {
-        if (responseData.pattern.test(message)) {
-          return {
-            content: responseData.response,
-            data: responseData.data,
-            chart: responseData.chart,
-            insights: [responseData.insight]
-          }
-        }
-      }
-
-      // Default responses for other patterns
-      if (message.includes('hello') || message.includes('hi')) {
-        return { content: "Hello! I'm here to help you analyze your fleet data. What would you like to know?" }
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "I'm experiencing some technical difficulties. Please try again or ask about specific topics like safety scores, fuel efficiency, or maintenance predictions.",
+        timestamp: new Date(),
+        model: 'error-fallback',
+        isAIPowered: false
       }
       
-      if (message.includes('help')) {
-        return { content: "I can help you with:\n• Safety scores and incident analysis\n• Idle time and fuel efficiency\n• Cost optimization recommendations\n• Fleet utilization patterns\n• Predictive maintenance insights\n\nJust ask me a question in natural language!" }
-      }
-
-      return { 
-        content: "I understand you're asking about fleet operations. Let me analyze that... Based on current data patterns, I'd recommend checking the analytics dashboard for detailed metrics. You can also try asking about specific topics like safety scores, fuel efficiency, or maintenance predictions." 
-      }
+      setMessages(prev => [...prev, errorMessage])
     }
   }
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim() || isTyping || isStreaming) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -224,47 +402,15 @@ export default function FleetChat({ isOpen, onClose }: Props) {
     setIsTyping(true)
 
     try {
-      // Get AI response
-      const response = await generateResponse(messageText)
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: response.content,
-        timestamp: new Date(),
-        data: response.data,
-        chart: response.chart as any
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
-      
-      // Add insights as follow-up messages if available
-      if (response.insights && response.insights.length > 0) {
-        setTimeout(() => {
-          const insightMessages = response.insights!.map((insight, index) => ({
-            id: (Date.now() + 2 + index).toString(),
-            type: 'assistant' as const,
-            content: `💡 **AI Insight:** ${insight}`,
-            timestamp: new Date()
-          }))
-          
-          setMessages(prev => [...prev, ...insightMessages])
-          setIsTyping(false)
-        }, 1000)
+      // Use streaming for AI responses, non-streaming for pattern matching
+      if (aiConfig?.ai_enabled) {
+        await generateStreamingResponse(messageText)
       } else {
-        setIsTyping(false)
+        await generateNonStreamingResponse(messageText)
       }
     } catch (error) {
-      console.error('Error getting AI response:', error)
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: "I'm experiencing some technical difficulties. Please try again or ask about specific topics like safety scores, fuel efficiency, or maintenance predictions.",
-        timestamp: new Date()
-      }
-      
-      setMessages(prev => [...prev, errorMessage])
+      console.error('Error processing message:', error)
+    } finally {
       setIsTyping(false)
     }
   }
@@ -381,20 +527,51 @@ export default function FleetChat({ isOpen, onClose }: Props) {
         {/* Header */}
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-              <Bot className="w-5 h-5 text-white" />
+            <div className={`p-2 bg-gradient-to-r rounded-lg ${
+              aiConfig?.ai_enabled 
+                ? 'from-purple-500 to-pink-600' 
+                : 'from-blue-500 to-purple-600'
+            }`}>
+              {aiConfig?.ai_enabled ? (
+                <Brain className="w-5 h-5 text-white" />
+              ) : (
+                <Bot className="w-5 h-5 text-white" />
+              )}
             </div>
             <div>
-              <h3 className="font-semibold">Fleet Intelligence Assistant</h3>
-              <p className="text-xs text-gray-400">Powered by AI • Real-time Analytics</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">Fleet Intelligence Assistant</h3>
+                {aiConfig?.ai_enabled && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded-full">
+                    <Sparkles className="w-3 h-3 text-purple-400" />
+                    <span className="text-xs text-purple-300">AI Powered</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">
+                {aiConfig?.ai_enabled 
+                  ? `Claude AI • ${aiConfig.model}` 
+                  : 'Demo Mode • Pattern Matching'
+                }
+              </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            ✕
-          </button>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              title="AI Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -421,7 +598,7 @@ export default function FleetChat({ isOpen, onClose }: Props) {
                   )}
                 </div>
                 <div className={`flex-1 ${message.type === 'user' ? 'text-right' : ''}`}>
-                  <div className={`inline-block p-3 rounded-xl max-w-[80%] ${
+                  <div className={`inline-block p-3 rounded-xl max-w-[80%] relative ${
                     message.type === 'user'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-800 text-gray-100'
@@ -432,29 +609,72 @@ export default function FleetChat({ isOpen, onClose }: Props) {
                         {renderChart(message)}
                       </div>
                     )}
+                    
+                    {/* AI Status Badge */}
+                    {message.type === 'assistant' && message.model && message.model !== 'welcome' && (
+                      <div className="absolute -top-2 -right-2">
+                        {message.isAIPowered ? (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
+                            <Brain className="w-3 h-3" />
+                            AI
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-600 text-white text-xs rounded-full">
+                            <Bot className="w-3 h-3" />
+                            Demo
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Streaming Indicator */}
+                    {message.isStreaming && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                        <div className="w-1 h-1 bg-purple-400 rounded-full animate-pulse" />
+                        <span>Streaming response...</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                     {message.timestamp.toLocaleTimeString()}
+                    {message.model && message.model !== 'welcome' && (
+                      <span className="text-gray-600">
+                        • {message.isAIPowered ? `Claude ${message.model?.split('-')[1]}` : 'Pattern Match'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {isTyping && (
+          {(isTyping || isStreaming) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex gap-3"
             >
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                aiConfig?.ai_enabled 
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-600' 
+                  : 'bg-gradient-to-r from-blue-500 to-purple-600'
+              }`}>
+                {aiConfig?.ai_enabled ? (
+                  <Brain className="w-4 h-4 text-white" />
+                ) : (
+                  <Bot className="w-4 h-4 text-white" />
+                )}
               </div>
               <div className="bg-gray-800 rounded-xl p-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {isStreaming ? 'Claude is thinking...' : 'Processing...'}
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -486,19 +706,46 @@ export default function FleetChat({ isOpen, onClose }: Props) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask about fleet performance, safety, costs..."
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder={
+                aiConfig?.ai_enabled 
+                  ? "Ask me anything about your fleet..."
+                  : "Ask about fleet performance, safety, costs..."
+              }
+              disabled={isTyping || isStreaming}
+              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isTyping}
+              disabled={!inputValue.trim() || isTyping || isStreaming}
               className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>
           </div>
+          
+          {/* Status Message */}
+          {aiConfig && (
+            <div className="text-center">
+              <p className="text-xs text-gray-500">
+                {aiConfig.ai_enabled 
+                  ? `🧠 Enhanced with Claude AI • ${aiConfig.model}` 
+                  : '🤖 Demo mode • Configure API key for AI-powered responses'
+                }
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
+      
+      {/* AI Settings Modal */}
+      <AISettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onConfigChange={() => {
+          fetchAIConfig()
+          // Optionally refresh the chat or show a notification
+        }}
+      />
     </motion.div>
   )
 }
