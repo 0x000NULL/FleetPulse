@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
 import L, { LatLngExpression } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Play, Pause, RotateCcw, Calendar, Clock, MapPin, Gauge, Route } from 'lucide-react'
+import { Play, Pause, RotateCcw, Calendar, Clock, MapPin, Gauge, Route, ArrowLeft } from 'lucide-react'
 
 // Fix for default markers in Leaflet with Webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -211,11 +211,20 @@ export default function RouteReplay({ vehicleId, onClose }: RouteReplayProps) {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-r from-gray-900/95 to-gray-800/95 backdrop-blur-sm border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Route className="w-5 h-5 text-blue-400" />
-            Route Replay
-            {vehicleId && <span className="text-sm text-gray-400">Vehicle {vehicleId}</span>}
-          </h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 hover:text-white transition-colors"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <Route className="w-5 h-5 text-blue-400" />
+              Route Replay
+              {vehicleId && <span className="text-sm text-gray-400">Vehicle {vehicleId}</span>}
+            </h1>
+          </div>
           
           <div className="flex items-center gap-4">
             {/* Date Picker */}
@@ -305,8 +314,11 @@ export default function RouteReplay({ vehicleId, onClose }: RouteReplayProps) {
         )}
         
         {loading && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <div className="text-white text-lg">Loading route data...</div>
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              <div className="text-white text-lg">Loading route data...</div>
+            </div>
           </div>
         )}
       </div>
