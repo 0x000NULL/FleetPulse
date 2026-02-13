@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import dashboard, vehicles, safety, gamification, alerts, monitor, ai_chat, coaching, maintenance, trips
+from routers import dashboard, vehicles, safety, gamification, alerts, monitor, ai_chat, coaching, maintenance, trips, reports, geofences, fuel, compliance
 
 app = FastAPI(
     title="FleetPulse API",
@@ -29,6 +29,10 @@ app.include_router(ai_chat.router, prefix="/api/ai", tags=["AI Chat & Intelligen
 app.include_router(coaching.router, prefix="/api/coaching", tags=["Driver Coaching"])
 app.include_router(maintenance.router, prefix="/api/maintenance", tags=["Predictive Maintenance"])
 app.include_router(trips.router, prefix="/api/trips", tags=["Route Replay"])
+app.include_router(reports.router, prefix="/api/reports", tags=["Fleet Reports"])
+app.include_router(geofences.router, prefix="/api/geofences", tags=["Geofence Management"])
+app.include_router(fuel.router, prefix="/api/fuel", tags=["Fuel Analytics"])
+app.include_router(compliance.router, prefix="/api/compliance", tags=["Compliance & ELD"])
 
 
 @app.on_event("startup")
