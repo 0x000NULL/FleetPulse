@@ -1,0 +1,262 @@
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { Database, TrendingUp, AlertTriangle, Truck, Fuel, Clock, Activity } from 'lucide-react'
+
+interface VehicleKpi {
+  vehicle_name: string
+  distance_km: number
+  drive_hours: number
+  idle_hours: number
+  trips: number
+  fuel_litres: number
+}
+
+interface KpiSummary {
+  total_vehicles: number
+  total_distance_km: number
+  total_drive_hours: number
+  total_idle_hours: number
+  utilization_pct: number
+}
+
+interface VehicleKpiResponse {
+  vehicles: VehicleKpi[]
+  summary: KpiSummary
+  period_days: number
+}
+
+interface SafetyResponse {
+  fleet_daily: any[]
+  vehicle_scores: any[]
+  period_days: number
+}
+
+interface FaultResponse {
+  faults: any[]
+  period_days: number
+}
+
+export default function DataConnector() {
+  const [kpis, setKpis] = useState<VehicleKpiResponse | null>(null)
+  const [safety, setSafety] = useState<SafetyResponse | null>(null)
+  const [faults, setFaults] = useState<FaultResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [days, setDays] = useState(14)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    Promise.all([
+      fetch(`/api/data-connector/vehicle-kpis?days=${days}`).then(r => r.json()),
+      fetch(`/api/data-connector/safety-scores?days=${days}`).then(r => r.json()),
+      fetch(`/api/data-connector/fault-trends?days=${days}`).then(r => r.json()),
+    ])
+      .then(([k, s, f]) => {
+        setKpis(k)
+        setSafety(s)
+        setFaults(f)
+      })
+      .catch(e => setError(e.message || 'Failed to load Data Connector'))
+      .finally(() => setLoading(false))
+  }, [days])
+
+  if (error) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+        <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+        <p className="text-red-300 font-medium">Data Connector Error</p>
+        <p className="text-red-400/70 text-sm mt-1">{error}</p>
+        <p className="text-gray-500 text-xs mt-3">
+          Make sure the Data Connector add-in is activated in MyGeotab → Administration → System Settings → Add-Ins
+        </p>
+      </div>
+    )
+  }
+
+  const summary = kpis?.summary
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Database className="w-6 h-6 text-cyan-400" />
+          <div>
+            <h2 className="text-xl font-bold text-white">Data Connector Analytics</h2>
+            <p className="text-sm text-gray-400">Pre-aggregated fleet metrics via Geotab OData</p>
+          </div>
+        </div>
+        <select
+          value={days}
+          onChange={e => setDays(Number(e.target.value))}
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+        >
+          <option value={1}>Last 24h</option>
+          <option value={7}>Last 7 days</option>
+          <option value={14}>Last 14 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={90}>Last 90 days</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-gray-800/50 rounded-xl p-4 animate-pulse h-24" />
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* Summary KPI Cards */}
+          {summary && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[
+                { label: 'Vehicles', value: summary.total_vehicles, icon: Truck, color: 'text-blue-400' },
+                { label: 'Total Distance', value: `${(summary.total_distance_km / 1000).toFixed(1)}k km`, icon: TrendingUp, color: 'text-emerald-400' },
+                { label: 'Drive Hours', value: `${summary.total_drive_hours.toFixed(0)}h`, icon: Clock, color: 'text-purple-400' },
+                { label: 'Idle Hours', value: `${summary.total_idle_hours.toFixed(0)}h`, icon: Clock, color: 'text-amber-400' },
+                { label: 'Utilization', value: `${summary.utilization_pct}%`, icon: Activity, color: 'text-cyan-400' },
+              ].map(({ label, value, icon: Icon, color }, i) => (
+                <motion.div
+                  key={label}
+                  className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className={`w-4 h-4 ${color}`} />
+                    <span className="text-xs text-gray-400">{label}</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{value}</p>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Vehicle Utilization Table */}
+          {kpis && kpis.vehicles.length > 0 && (
+            <motion.div
+              className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                <Truck className="w-5 h-5 text-blue-400" />
+                Vehicle Utilization ({days}-day)
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 border-b border-gray-700">
+                      <th className="text-left py-2 px-2">Vehicle</th>
+                      <th className="text-right py-2 px-2">Distance (km)</th>
+                      <th className="text-right py-2 px-2">Drive (h)</th>
+                      <th className="text-right py-2 px-2">Idle (h)</th>
+                      <th className="text-right py-2 px-2">Trips</th>
+                      <th className="text-right py-2 px-2">Fuel (L)</th>
+                      <th className="text-right py-2 px-2">Utilization</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kpis.vehicles.slice(0, 20).map((v, i) => {
+                      const util = v.drive_hours + v.idle_hours > 0
+                        ? (v.drive_hours / (v.drive_hours + v.idle_hours) * 100)
+                        : 0
+                      return (
+                        <tr key={i} className="border-b border-gray-700/30 hover:bg-gray-700/20">
+                          <td className="py-2 px-2 text-white">{v.vehicle_name}</td>
+                          <td className="text-right py-2 px-2">{v.distance_km.toFixed(1)}</td>
+                          <td className="text-right py-2 px-2">{v.drive_hours.toFixed(1)}</td>
+                          <td className="text-right py-2 px-2 text-amber-400">{v.idle_hours.toFixed(1)}</td>
+                          <td className="text-right py-2 px-2">{v.trips}</td>
+                          <td className="text-right py-2 px-2">{v.fuel_litres.toFixed(1)}</td>
+                          <td className="text-right py-2 px-2">
+                            <span className={util > 70 ? 'text-emerald-400' : util > 40 ? 'text-amber-400' : 'text-red-400'}>
+                              {util.toFixed(0)}%
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Safety Scores */}
+          {safety && safety.vehicle_scores.length > 0 && (
+            <motion.div
+              className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                Safety Scores (Data Connector)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {safety.vehicle_scores.slice(0, 8).map((s: any, i: number) => (
+                  <div key={i} className="bg-gray-700/30 rounded-lg p-3">
+                    <p className="text-sm text-gray-400">{s.VehicleName || s.DriverName || `Vehicle ${i + 1}`}</p>
+                    <p className="text-xl font-bold text-white">{s.SafetyScore ?? s.Score ?? '—'}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Fault Trends */}
+          {faults && faults.faults.length > 0 && (
+            <motion.div
+              className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+                Fault Code Trends
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 border-b border-gray-700">
+                      <th className="text-left py-2 px-2">Vehicle</th>
+                      <th className="text-left py-2 px-2">Fault Code</th>
+                      <th className="text-right py-2 px-2">Count</th>
+                      <th className="text-left py-2 px-2">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {faults.faults.slice(0, 15).map((f: any, i: number) => (
+                      <tr key={i} className="border-b border-gray-700/30">
+                        <td className="py-2 px-2 text-white">{f.VehicleName || '—'}</td>
+                        <td className="py-2 px-2">{f.FaultCode || f.DiagnosticName || '—'}</td>
+                        <td className="text-right py-2 px-2 text-red-400">{f.Count || f.FaultCount || 1}</td>
+                        <td className="py-2 px-2 text-gray-400">{f.Date || f.Day || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Empty state */}
+          {kpis && kpis.vehicles.length === 0 && (
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-8 text-center">
+              <Database className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400">No Data Connector data available yet.</p>
+              <p className="text-gray-500 text-sm mt-1">Data pipeline may take 2-3 hours to backfill after activation.</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

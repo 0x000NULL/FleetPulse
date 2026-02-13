@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FleetPulse — MyGeotab Add-In</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .header { padding: 16px 24px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 12px; background: #0f172a; }
+    .header h1 { font-size: 20px; background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header .badge { font-size: 11px; background: #1e293b; padding: 2px 8px; border-radius: 999px; color: #94a3b8; }
+    .period-select { margin-left: auto; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 6px 10px; color: #e2e8f0; font-size: 13px; }
+    .loading { text-align: center; padding: 60px; color: #64748b; }
+    .loading .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #60a5fa; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { text-align: center; padding: 40px; }
+    .error h3 { color: #f87171; margin-bottom: 8px; }
+    .error p { color: #94a3b8; font-size: 14px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 20px 24px; }
+    .kpi-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
+    .kpi-card .label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+    .kpi-card .value { font-size: 28px; font-weight: 700; }
+    .kpi-card .value.blue { color: #60a5fa; }
+    .kpi-card .value.green { color: #34d399; }
+    .kpi-card .value.purple { color: #a78bfa; }
+    .kpi-card .value.amber { color: #fbbf24; }
+    .kpi-card .value.cyan { color: #22d3ee; }
+    .section { padding: 0 24px 20px; }
+    .section h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px; color: #94a3b8; border-bottom: 1px solid #334155; font-weight: 500; }
+    th.r { text-align: right; }
+    td { padding: 8px; border-bottom: 1px solid #1e293b; }
+    td.r { text-align: right; }
+    tr:hover { background: #1e293b40; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; overflow-x: auto; }
+    .vehicles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .vehicle-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
+    .vehicle-card .name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    .vehicle-card .stat { font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; padding: 2px 0; }
+    .vehicle-card .stat span:last-child { color: #e2e8f0; }
+    .safe-good { color: #34d399; }
+    .safe-warn { color: #fbbf24; }
+    .safe-bad { color: #f87171; }
+    .tabs { display: flex; gap: 4px; padding: 16px 24px 0; }
+    .tab { padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; background: transparent; border: none; color: #94a3b8; }
+    .tab:hover { background: #1e293b; color: #e2e8f0; }
+    .tab.active { background: #3b82f6; color: white; }
+    .embed-frame { width: 100%; height: calc(100vh - 60px); border: none; }
+    .mode-toggle { display: flex; gap: 8px; padding: 12px 24px; }
+    .mode-btn { padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid #334155; background: #1e293b; color: #94a3b8; }
+    .mode-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Initializing FleetPulse...</p>
+    </div>
+  </div>
+
+  <script>
+    // MyGeotab injects `geotab.addin.fleetpulse` with initialize(api, state, callback)
+    // We store references globally for use throughout the add-in
+    let geotabApi = null;
+    let geotabState = null;
+    let currentTab = 'dashboard';
+    let currentMode = 'native'; // 'native' or 'embed'
+    const FLEETPULSE_URL = 'https://fleetpulse-rm49a.ondigitalocean.app';
+
+    // ── MyGeotab Add-In lifecycle ────────────────────────────
+    if (typeof geotab === 'undefined') { window.geotab = {}; }
+    if (!geotab.addin) { geotab.addin = {}; }
+
+    geotab.addin.fleetpulse = {
+      initialize: function(api, state, callback) {
+        geotabApi = api;
+        geotabState = state;
+        console.log('[FleetPulse] Add-In initialized');
+        renderApp();
+        if (callback) callback();
+      },
+      focus: function(api, state) {
+        geotabApi = api;
+        geotabState = state;
+        console.log('[FleetPulse] Add-In focused');
+      },
+      blur: function(api, state) {
+        console.log('[FleetPulse] Add-In blurred');
+      }
+    };
+
+    // Auto-init for standalone testing (no MyGeotab)
+    if (!window.frameElement) {
+      setTimeout(function() {
+        if (!geotabApi) {
+          console.log('[FleetPulse] Standalone mode – no MyGeotab API');
+          renderApp();
+        }
+      }, 500);
+    }
+
+    // ── Rendering ────────────────────────────────────────────
+    function renderApp() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="header">
+          <span style="font-size:24px">🚗</span>
+          <h1>FleetPulse</h1>
+          <span class="badge">MyGeotab Add-In</span>
+          <select class="period-select" id="periodSelect" onchange="loadDashboard()">
+            <option value="1">Last 24h</option>
+            <option value="7">Last 7 days</option>
+            <option value="14" selected>Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="mode-toggle">
+          <button class="mode-btn ${currentMode === 'native' ? 'active' : ''}" onclick="setMode('native')">Native View</button>
+          <button class="mode-btn ${currentMode === 'embed' ? 'active' : ''}" onclick="setMode('embed')">Full Dashboard</button>
+        </div>
+        <div id="content"></div>
+      `;
+      if (currentMode === 'embed') {
+        renderEmbed();
+      } else {
+        loadDashboard();
+      }
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      renderApp();
+    }
+
+    function renderEmbed() {
+      document.getElementById('content').innerHTML =
+        '<iframe class="embed-frame" src="' + FLEETPULSE_URL + '"></iframe>';
+    }
+
+    async function loadDashboard() {
+      const content = document.getElementById('content');
+      if (!content) return;
+      content.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading fleet data...</p></div>';
+
+      try {
+        const data = {};
+
+        if (geotabApi) {
+          // Use MyGeotab API directly
+          const [devices, trips, exceptions] = await Promise.all([
+            apiCall('Get', { typeName: 'Device' }),
+            apiCall('Get', { typeName: 'Trip', search: { fromDate: daysAgo(getDays()), toDate: new Date().toISOString() } }),
+            apiCall('Get', { typeName: 'ExceptionEvent', search: { fromDate: daysAgo(getDays()), toDate: new Date().toISOString() } }),
+          ]);
+          data.devices = devices || [];
+          data.trips = trips || [];
+          data.exceptions = exceptions || [];
+          renderNativeDashboard(data);
+        } else {
+          // Standalone: fetch from FleetPulse API
+          const [overview, vehicles, safety] = await Promise.all([
+            fetchJson(FLEETPULSE_URL + '/api/dashboard/overview'),
+            fetchJson(FLEETPULSE_URL + '/api/vehicles/'),
+            fetchJson(FLEETPULSE_URL + '/api/safety/scores'),
+          ]);
+          data.overview = overview;
+          data.vehicles = vehicles;
+          data.safety = safety;
+          renderStandaloneDashboard(data);
+        }
+      } catch (err) {
+        content.innerHTML = `<div class="error"><h3>⚠️ Error Loading Data</h3><p>${err.message}</p></div>`;
+      }
+    }
+
+    function renderNativeDashboard(data) {
+      const days = getDays();
+      const totalTrips = data.trips.length;
+      const totalDevices = data.devices.length;
+      const totalExceptions = data.exceptions.length;
+
+      // Calculate total distance from trips
+      let totalDistKm = 0;
+      data.trips.forEach(t => { totalDistKm += (t.distance || 0); });
+
+      // Safety: fewer exceptions per trip = better
+      const safetyScore = totalTrips > 0 ? Math.max(0, Math.min(100, Math.round(100 - (totalExceptions / totalTrips) * 20))) : 100;
+
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="label">🚗 Active Vehicles</div><div class="value blue">${totalDevices}</div></div>
+          <div class="kpi-card"><div class="label">📍 Total Trips (${days}d)</div><div class="value green">${totalTrips.toLocaleString()}</div></div>
+          <div class="kpi-card"><div class="label">📏 Distance (km)</div><div class="value purple">${(totalDistKm / 1000).toFixed(1)}k</div></div>
+          <div class="kpi-card"><div class="label">⚠️ Exceptions</div><div class="value amber">${totalExceptions.toLocaleString()}</div></div>
+          <div class="kpi-card"><div class="label">🛡️ Safety Score</div><div class="value ${safetyScore >= 80 ? 'green' : safetyScore >= 60 ? 'amber' : 'cyan'}">${safetyScore}</div></div>
+        </div>
+        <div class="section">
+          <h3>🚗 Vehicles</h3>
+          <div class="card">
+            <div class="vehicles-grid">
+              ${data.devices.slice(0, 16).map(d => {
+                const vTrips = data.trips.filter(t => t.device && t.device.id === d.id);
+                const vDist = vTrips.reduce((s, t) => s + (t.distance || 0), 0);
+                return `<div class="vehicle-card">
+                  <div class="name">${d.name || d.serialNumber || 'Unknown'}</div>
+                  <div class="stat"><span>Trips</span><span>${vTrips.length}</span></div>
+                  <div class="stat"><span>Distance</span><span>${(vDist).toFixed(1)} km</span></div>
+                  <div class="stat"><span>Serial</span><span>${d.serialNumber || '—'}</span></div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <h3>⚠️ Recent Exceptions</h3>
+          <div class="card">
+            <table>
+              <thead><tr><th>Device</th><th>Rule</th><th>Date</th><th class="r">Duration</th></tr></thead>
+              <tbody>
+                ${data.exceptions.slice(0, 10).map(e => {
+                  const dev = data.devices.find(d => e.device && d.id === e.device.id);
+                  return `<tr>
+                    <td>${dev ? dev.name : (e.device?.id || '—')}</td>
+                    <td>${e.rule?.name || e.rule?.id || '—'}</td>
+                    <td>${e.activeFrom ? new Date(e.activeFrom).toLocaleDateString() : '—'}</td>
+                    <td class="r">${e.duration || '—'}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStandaloneDashboard(data) {
+      const o = data.overview || {};
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="label">🚗 Vehicles</div><div class="value blue">${o.total_vehicles || 0}</div></div>
+          <div class="kpi-card"><div class="label">✅ Active</div><div class="value green">${o.active_vehicles || 0}</div></div>
+          <div class="kpi-card"><div class="label">📍 Trips Today</div><div class="value purple">${o.trips_today || 0}</div></div>
+          <div class="kpi-card"><div class="label">📏 Distance (km)</div><div class="value amber">${((o.distance_today_km || 0) / 1000).toFixed(1)}k</div></div>
+          <div class="kpi-card"><div class="label">⚠️ Alerts</div><div class="value cyan">${o.active_alerts || 0}</div></div>
+        </div>
+        <div class="section">
+          <h3>🚗 Vehicle Fleet</h3>
+          <div class="card">
+            <div class="vehicles-grid">
+              ${(data.vehicles || []).slice(0, 16).map(v => `
+                <div class="vehicle-card">
+                  <div class="name">${v.name || 'Unknown'}</div>
+                  <div class="stat"><span>Status</span><span>${v.status || '—'}</span></div>
+                  <div class="stat"><span>Speed</span><span>${v.speed != null ? v.speed + ' km/h' : '—'}</span></div>
+                  <div class="stat"><span>Location</span><span>${v.location_name || '—'}</span></div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        ${data.safety ? `
+        <div class="section">
+          <h3>🛡️ Safety Scores</h3>
+          <div class="card">
+            <div class="vehicles-grid">
+              ${(data.safety.scores || data.safety || []).slice(0, 8).map(s => `
+                <div class="vehicle-card">
+                  <div class="name">${s.vehicle_name || s.driver_name || '—'}</div>
+                  <div class="stat"><span>Score</span><span class="${(s.score || 0) >= 80 ? 'safe-good' : (s.score || 0) >= 60 ? 'safe-warn' : 'safe-bad'}">${s.score || '—'}</span></div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>` : ''}
+      `;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────
+    function getDays() {
+      const sel = document.getElementById('periodSelect');
+      return sel ? parseInt(sel.value, 10) : 14;
+    }
+
+    function daysAgo(n) {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString();
+    }
+
+    function apiCall(method, params) {
+      return new Promise((resolve, reject) => {
+        geotabApi.call(method, params, resolve, reject);
+      });
+    }
+
+    async function fetchJson(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    }
+  </script>
+</body>
+</html>
