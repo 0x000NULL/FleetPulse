@@ -315,3 +315,62 @@ Built by **Vex** for the GeoTab Hackathon 2026.
 ## 📜 License
 
 MIT
+
+---
+
+## 🔌 MyGeotab Add-In
+
+FleetPulse includes a MyGeotab Add-In that runs **inside** the MyGeotab portal.
+
+### Installation
+
+1. In MyGeotab, go to **Administration → System Settings → Add-Ins**
+2. Click **New Add-In** and paste the contents of `addin/config.json`
+   - Or, if hosting the add-in files on a server, update the `url` fields to point to your hosted `addin/fleetpulse/` directory
+3. Save and refresh MyGeotab — "FleetPulse" will appear in the navigation
+
+### How It Works
+
+- When loaded inside MyGeotab, the add-in receives the `api` and `state` objects from the SDK
+- It calls the Geotab API directly (Get Device, Get Trip, Get ExceptionEvent) to render KPIs, vehicle lists, and safety data
+- A "Full Dashboard" mode embeds the live FleetPulse web app in an iframe
+- Works in standalone mode too (fetches from the FleetPulse API)
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `addin/config.json` | MyGeotab Add-In manifest (pages, icons, navigation) |
+| `addin/fleetpulse/index.html` | The Add-In page (HTML/JS/CSS, no build step) |
+
+---
+
+## 📊 Data Connector Integration
+
+FleetPulse integrates with the **Geotab Data Connector** (OData v4) for pre-aggregated fleet analytics.
+
+### Activation
+
+The Data Connector must be activated on your database:
+
+1. In MyGeotab → **Administration → System Settings → Add-Ins**
+2. Add: `{"url": "https://app.geotab.com/addins/geotab/dataConnector/manifest.json"}`
+3. Save and wait 2-3 hours for the data pipeline to backfill
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/data-connector/tables` | List available OData tables |
+| `GET /api/data-connector/vehicle-kpis?days=14` | Per-vehicle utilization: distance, drive/idle hours, trips, fuel |
+| `GET /api/data-connector/safety-scores?days=14` | Fleet and vehicle safety scores |
+| `GET /api/data-connector/fault-trends?days=14` | Fault code frequency and trends |
+| `GET /api/data-connector/trip-summary?days=14` | Trip aggregates per vehicle |
+
+### Frontend
+
+Navigate to the **Connector** tab in the FleetPulse dashboard to see:
+- Fleet utilization KPIs (distance, drive hours, idle hours, utilization %)
+- Per-vehicle utilization table
+- Aggregated safety scores
+- Fault code trends

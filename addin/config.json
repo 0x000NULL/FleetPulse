@@ -1,0 +1,27 @@
+{
+  "name": "FleetPulse",
+  "supportEmail": "e.aldrich@budgetlasvegas.com",
+  "version": "1.0.0",
+  "items": [
+    {
+      "url": "addin/fleetpulse/",
+      "path": "ActivityLink/",
+      "svgIcon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIj48cGF0aCBkPSJNMyAxOHYtNmE5IDkgMCAwIDEgMTggMHY2Ii8+PHBhdGggZD0iTTIxIDE5YTIgMiAwIDAgMS0yIDJoLTFhMiAyIDAgMCAxLTItMnYtM2EyIDIgMCAwIDEgMi0yaDNaTTMgMTlhMiAyIDAgMCAwIDIgMmgxYTIgMiAwIDAgMCAyLTJ2LTNhMiAyIDAgMCAwLTItMkgzWiIvPjwvc3ZnPg==",
+      "menuName": {
+        "en": "FleetPulse Dashboard"
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "FleetPulse",
+      "menuName": {
+        "en": "FleetPulse"
+      },
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIj48cmVjdCB4PSIzIiB5PSIzIiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIi8+PHBhdGggZD0iTTMgOWgxOCIvPjxwYXRoIGQ9Ik05IDIxVjkiLz48L3N2Zz4=",
+      "url": "addin/fleetpulse/"
+    }
+  ],
+  "isSigned": false,
+  "signature": ""
+}
