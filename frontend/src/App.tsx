@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageCircle, Zap, BarChart3, Wrench, GraduationCap, Route } from 'lucide-react'
+import { MessageCircle, Zap, BarChart3, Wrench, GraduationCap, Route, FileText, MapPin, Fuel, Shield } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import FleetAnalytics from './components/FleetAnalytics'
 import FleetChat from './components/FleetChat'
@@ -17,11 +17,15 @@ import DriverCoaching from './components/DriverCoaching'
 import RouteReplay from './components/RouteReplay'
 import InstallPrompt from './components/InstallPrompt'
 import OfflineIndicator from './components/OfflineIndicator'
+import FleetReports from './components/FleetReports'
+import GeofenceManager from './components/GeofenceManager'
+import FuelAnalytics from './components/FuelAnalytics'
+import ComplianceDashboard from './components/ComplianceDashboard'
 import { useFleetOverview, useVehicles, useSafetyScores, useLeaderboard, useAlerts, useLocations, useMonitorAlerts, useMonitorStatus } from './hooks/useGeotab'
 
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'coaching' | 'replay'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'coaching' | 'replay' | 'reports' | 'geofences' | 'fuel' | 'compliance'>('dashboard')
   
   const overview = useFleetOverview()
   const vehicles = useVehicles()
@@ -120,7 +124,51 @@ export default function App() {
               }`}
             >
               <Route className="w-4 h-4" />
-              <span className="hidden sm:inline">Route Replay</span>
+              <span className="hidden sm:inline">Routes</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('fuel')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'fuel'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <Fuel className="w-4 h-4" />
+              <span className="hidden sm:inline">Fuel</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('geofences')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'geofences'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <MapPin className="w-4 h-4" />
+              <span className="hidden sm:inline">Zones</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('compliance')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'compliance'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">ELD</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                activeTab === 'reports'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700/50 light:text-gray-600 light:hover:text-gray-900 light:hover:bg-white'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Reports</span>
             </button>
           </nav>
           
@@ -262,6 +310,11 @@ export default function App() {
         {activeTab === 'replay' && (
           <RouteReplay onClose={() => setActiveTab('dashboard')} />
         )}
+
+        {activeTab === 'reports' && <FleetReports />}
+        {activeTab === 'geofences' && <GeofenceManager />}
+        {activeTab === 'fuel' && <FuelAnalytics />}
+        {activeTab === 'compliance' && <ComplianceDashboard />}
       </motion.main>
 
       {/* PWA Components */}
