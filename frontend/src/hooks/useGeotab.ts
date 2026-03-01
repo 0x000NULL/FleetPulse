@@ -3,6 +3,24 @@ import type { FleetOverview, Vehicle, VehicleSafetyScore, DriverScore, Alert, Lo
 
 const API = '/api'
 
+// Fetch with timeout to prevent infinite loading
+const fetchWithTimeout = async (url: string, timeout = 10000) => {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  
+  try {
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(id)
+    return response
+  } catch (error: any) {
+    clearTimeout(id)
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout - data may be unavailable')
+    }
+    throw error
+  }
+}
+
 function useFetch<T>(url: string, interval = 30000) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
@@ -10,12 +28,13 @@ function useFetch<T>(url: string, interval = 30000) {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`${res.status}`)
+      const res = await fetchWithTimeout(url, 10000)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setData(await res.json())
       setError(null)
     } catch (e: any) {
       setError(e.message)
+      setData(null)
     } finally {
       setLoading(false)
     }
