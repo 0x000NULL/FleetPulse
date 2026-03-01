@@ -12,5 +12,6 @@ def get_cached(key: str, ttl: int = 300) -> Any | None:
             return val
     return None
 
-def set_cached(key: str, value: Any):
+def set_cached(key: str, value: Any, ttl: int = 300):
+    """Store value in cache. ttl param accepted for clarity but TTL is checked on read."""
     _cache[key] = (time.time(), value)

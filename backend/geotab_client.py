@@ -8,8 +8,16 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import concurrent.futures
+import logging
+
 import mygeotab
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
+
+# Thread pool for timeout-wrapping blocking Geotab calls
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 # Try loading creds from the openclaw env file, fall back to project .env
 _env_geotab = Path.home() / ".openclaw" / ".env.geotab"
@@ -60,9 +68,19 @@ class GeotabClient:
     def api(self) -> mygeotab.API:
         return self.authenticate()
 
+    # ── timeout helper ─────────────────────────────────────────
+    def _call(self, fn, *args, timeout: float = 5.0, **kwargs):
+        """Run a blocking Geotab call with a timeout (default 5s)."""
+        future = _executor.submit(fn, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            logger.warning(f"Geotab API call timed out after {timeout}s: {fn.__name__ if hasattr(fn, '__name__') else fn}")
+            raise TimeoutError(f"Geotab API call timed out after {timeout}s")
+
     # ── data methods ───────────────────────────────────────────
     def get_devices(self) -> list[dict[str, Any]]:
-        return self.api.get("Device")
+        return self._call(self.api.get, "Device")
 
     def get_trips(
         self,
@@ -71,7 +89,8 @@ class GeotabClient:
     ) -> list[dict[str, Any]]:
         to_date = to_date or datetime.now(timezone.utc)
         from_date = from_date or (to_date - timedelta(days=1))
-        return self.api.get(
+        return self._call(
+            self.api.get,
             "Trip",
             from_date=from_date.isoformat(),
             to_date=to_date.isoformat(),
@@ -84,7 +103,8 @@ class GeotabClient:
     ) -> list[dict[str, Any]]:
         to_date = to_date or datetime.now(timezone.utc)
         from_date = from_date or (to_date - timedelta(days=7))
-        return self.api.get(
+        return self._call(
+            self.api.get,
             "ExceptionEvent",
             from_date=from_date.isoformat(),
             to_date=to_date.isoformat(),
@@ -104,17 +124,17 @@ class GeotabClient:
         }
         if diagnostic_id:
             search["diagnosticSearch"] = {"id": diagnostic_id}
-        return self.api.get("StatusData", search=search)
+        return self._call(self.api.get, "StatusData", search=search)
 
     def get_zones(self) -> list[dict[str, Any]]:
-        return self.api.get("Zone")
+        return self._call(self.api.get, "Zone")
 
     def get_groups(self) -> list[dict[str, Any]]:
-        return self.api.get("Group")
+        return self._call(self.api.get, "Group")
 
     def get_device_status_info(self) -> list[dict[str, Any]]:
         """DeviceStatusInfo gives current lat/lon, speed, bearing, etc."""
-        return self.api.get("DeviceStatusInfo")
+        return self._call(self.api.get, "DeviceStatusInfo")
 
     def add_zone(self, zone_data: dict[str, Any]) -> str:
-        return self.api.add("Zone", zone_data)
+        return self._call(self.api.add, "Zone", zone_data)
