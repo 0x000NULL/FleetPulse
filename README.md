@@ -6,6 +6,8 @@ FleetPulse is an intelligent fleet management dashboard for multi-location renta
 
 ![FleetPulse](https://img.shields.io/badge/Status-Live-green) ![GeoTab](https://img.shields.io/badge/GeoTab-Integrated-blue) ![Vehicles](https://img.shields.io/badge/Vehicles-50-orange)
 
+> **📝 Demo Mode Note:** The safety scoring system currently uses **mock data** for realistic visualization in the demo. The Geotab demo database (`demo_fleetpulse`) has no ExceptionEvents configured, resulting in all vehicles having perfect 100% scores when using real API data. Mock data provides realistic score distributions (70-100 range) with varied violation counts that match the Alert Distribution chart. **Production mode** is preserved in comments within `backend/services/safety_service.py` and can be re-enabled by uncommenting the real API calls.
+
 ## 🏗️ Architecture
 
 ```

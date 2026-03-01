@@ -54,6 +54,10 @@ const utilizationData = [
   { hour: '10PM', active: 8, idle: 35, maintenance: 2 },
 ]
 
+// NOTE: Mock data for demo visualization
+// Matches the safety score distribution in backend/services/safety_service.py
+// Total of 100 alerts distributed across categories
+// Production version would fetch from /api/alerts/distribution endpoint
 const alertDistribution = [
   { name: 'Speeding', value: 35, color: '#ef4444' },
   { name: 'Idle Time', value: 28, color: '#f59e0b' },
